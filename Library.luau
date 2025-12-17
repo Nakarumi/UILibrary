@@ -221,18 +221,20 @@ function Library:CreateWindow(config)
     Window.CurrentTab = nil
     Window.IsVisible = true
     Window.ConfigData = {}
-    Window.ConfigFolder = "LibraryConfigs"
     
     local title = type(config) == "string" and config or config.Title or "GUI Library"
     local size = type(config) == "table" and config.Size or UDim2.new(0, 500, 0, 400)
     local toggleKey = type(config) == "table" and config.ToggleKey or Enum.KeyCode.RightControl
-    local configFolder = type(config) == "table" and config.ConfigFolder or "LibraryConfigs"
     
     Window.ToggleKey = toggleKey
-    Window.ConfigFolder = configFolder
+    Window.ConfigFolder = title .. "/configs"
     
-    if not isfolder(configFolder) then
-        makefolder(configFolder)
+    if not isfolder(title) then
+        makefolder(title)
+    end
+    
+    if not isfolder(Window.ConfigFolder) then
+        makefolder(Window.ConfigFolder)
     end
     
     local ScreenGui = Instance.new("ScreenGui")
@@ -636,9 +638,20 @@ function Library:CreateConfiguration()
         end
         
         local configs = self:GetConfigs()
-        local listHeight = #configs * 32
+        local listHeight = math.max(#configs * 32, 32)
         
         ConfigList.CanvasSize = UDim2.new(0, 0, 0, listHeight)
+        
+        if #configs == 0 then
+            local NoConfigs = Instance.new("TextLabel")
+            NoConfigs.Size = UDim2.new(1, 0, 0, 30)
+            NoConfigs.BackgroundTransparency = 1
+            NoConfigs.Text = "No configs found"
+            NoConfigs.TextColor3 = self.Theme.TextDark
+            NoConfigs.Font = Enum.Font.Gotham
+            NoConfigs.TextSize = 12
+            NoConfigs.Parent = ConfigList
+        end
         
         for _, configName in pairs(configs) do
             local ConfigButton = Instance.new("TextButton")
@@ -678,7 +691,8 @@ function Library:CreateConfiguration()
         ConfigList.Visible = not ConfigList.Visible
         updateConfigList()
         
-        local listHeight = math.min(#self:GetConfigs() * 32, 120)
+        local configs = self:GetConfigs()
+        local listHeight = math.min(math.max(#configs, 1) * 32, 120)
         
         TweenService:Create(ConfigDropdown, TweenInfo.new(0.2), {
             Size = ConfigList.Visible and UDim2.new(1, -20, 0, 35 + listHeight + 3) or UDim2.new(1, -20, 0, 35)
@@ -739,6 +753,7 @@ function Library:CreateConfiguration()
         local name = ConfigName.Text
         if name ~= "" then
             self:SaveConfig(name)
+            task.wait(0.3)
             updateConfigList()
         else
             self:Notify({Title = "Error", Description = "Enter a config name", Duration = 2})
@@ -767,6 +782,7 @@ function Library:CreateConfiguration()
             self:DeleteConfig(SelectedConfig.Text)
             SelectedConfig.Text = "Select config..."
             SelectedConfig.TextColor3 = self.Theme.TextDark
+            task.wait(0.3)
             updateConfigList()
         else
             self:Notify({Title = "Error", Description = "Select a config first", Duration = 2})
@@ -775,6 +791,11 @@ function Library:CreateConfiguration()
     
     TweenService:Create(ConfigSection, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(ConfigLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    
+    task.spawn(function()
+        task.wait(0.5)
+        updateConfigList()
+    end)
     
     table.insert(self.Elements, ConfigSection)
     return ConfigSection
@@ -1550,16 +1571,16 @@ function Library:CreateColorPicker(name, default, callback)
     TweenService:Create(PickerLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     
     self.ConfigData[configKey] = {
-        Value = {R = currentColor.R * 255, G = currentColor.G * 255, B = currentColor.B * 255},
+        Value = {R = currentColor.R, G = currentColor.G, B = currentColor.B},
         Callback = function(value)
-            currentColor = Color3.fromRGB(value.R, value.G, value.B)
+            currentColor = Color3.fromRGB(value.R * 255, value.G * 255, value.B * 255)
             ColorDisplay.BackgroundColor3 = currentColor
-            RFill.Size = UDim2.new(value.R / 255, 0, 1, 0)
-            GFill.Size = UDim2.new(value.G / 255, 0, 1, 0)
-            BFill.Size = UDim2.new(value.B / 255, 0, 1, 0)
-            RValue.Text = tostring(math.floor(value.R))
-            GValue.Text = tostring(math.floor(value.G))
-            BValue.Text = tostring(math.floor(value.B))
+            RFill.Size = UDim2.new(value.R, 0, 1, 0)
+            GFill.Size = UDim2.new(value.G, 0, 1, 0)
+            BFill.Size = UDim2.new(value.B, 0, 1, 0)
+            RValue.Text = tostring(math.floor(value.R * 255))
+            GValue.Text = tostring(math.floor(value.G * 255))
+            BValue.Text = tostring(math.floor(value.B * 255))
         end
     }
     
@@ -1574,7 +1595,7 @@ function Library:CreateColorPicker(name, default, callback)
         GValue.Text = tostring(math.floor(g * 255))
         BValue.Text = tostring(math.floor(b * 255))
         
-        self.ConfigData[configKey].Value = {R = r * 255, G = g * 255, B = b * 255}
+        self.ConfigData[configKey].Value = {R = r, G = g, B = b}
         
         if callback then callback(currentColor) end
     end
