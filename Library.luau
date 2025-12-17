@@ -574,12 +574,13 @@ function Library:CreateConfiguration()
     NameCorner.CornerRadius = UDim.new(0, 6)
     NameCorner.Parent = ConfigName
     
+    -- GŁÓWNA ZMIANA: ConfigDropdown nie ma już ClipsDescendants!
     local ConfigDropdown = Instance.new("Frame")
     ConfigDropdown.Size = UDim2.new(1, -20, 0, 35)
     ConfigDropdown.Position = UDim2.new(0, 10, 0, 88)
     ConfigDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
     ConfigDropdown.BorderSizePixel = 0
-    ConfigDropdown.ClipsDescendants = true
+    ConfigDropdown.ClipsDescendants = false  -- ZMIENIONE z true na false
     ConfigDropdown.Parent = ConfigSection
     
     local DropCorner = Instance.new("UICorner")
@@ -607,14 +608,17 @@ function Library:CreateConfiguration()
     DropArrow.TextSize = 10
     DropArrow.Parent = ConfigDropdown
     
+    -- GŁÓWNA ZMIANA: ConfigList ma prawidłową pozycję i ZIndex
     local ConfigList = Instance.new("ScrollingFrame")
     ConfigList.Size = UDim2.new(1, 0, 0, 0)
-    ConfigList.Position = UDim2.new(0, 0, 1, 3)
+    ConfigList.Position = UDim2.new(0, 0, 0, 38)  -- ZMIENIONE: 38 zamiast (1, 3)
     ConfigList.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
     ConfigList.BorderSizePixel = 0
     ConfigList.ScrollBarThickness = 4
+    ConfigList.ScrollBarImageColor3 = self.Theme.Accent
     ConfigList.Visible = false
     ConfigList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    ConfigList.ZIndex = 10  -- DODANE: Wyższy ZIndex
     ConfigList.Parent = ConfigDropdown
     
     local ListCorner = Instance.new("UICorner")
@@ -626,7 +630,6 @@ function Library:CreateConfiguration()
     ListLayout.Padding = UDim.new(0, 2)
     ListLayout.Parent = ConfigList
     
-    -- GŁÓWNA ZMIANA: updateConfigList teraz działa poprawnie
     local function updateConfigList()
         -- Wyczyść wszystkie istniejące elementy
         for _, child in pairs(ConfigList:GetChildren()) do
@@ -635,20 +638,16 @@ function Library:CreateConfiguration()
             end
         end
         
-        -- Pobierz listę configów BEZPOŚREDNIO z plików
+        -- Pobierz listę configów
         local configs = self:GetConfigs()
         
-        print("DEBUG: Znaleziono configów:", #configs) -- Debug
-        for _, name in pairs(configs) do
-            print("  - " .. name) -- Debug
-        end
-        
-        local listHeight = math.max(#configs * 32, 32)
+        local listHeight = math.max(#configs * 32 + 4, 32)
         ConfigList.CanvasSize = UDim2.new(0, 0, 0, listHeight)
         
         if #configs == 0 then
             local NoConfigs = Instance.new("TextLabel")
-            NoConfigs.Size = UDim2.new(1, 0, 0, 30)
+            NoConfigs.Size = UDim2.new(1, -4, 0, 30)
+            NoConfigs.Position = UDim2.new(0, 2, 0, 0)
             NoConfigs.BackgroundTransparency = 1
             NoConfigs.Text = "No configs found"
             NoConfigs.TextColor3 = self.Theme.TextDark
@@ -659,9 +658,10 @@ function Library:CreateConfiguration()
         end
         
         -- Twórz przyciski dla każdego configa
-        for _, configName in pairs(configs) do
+        for i, configName in pairs(configs) do
             local ConfigButton = Instance.new("TextButton")
             ConfigButton.Size = UDim2.new(1, -8, 0, 30)
+            ConfigButton.Position = UDim2.new(0, 4, 0, 0)
             ConfigButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
             ConfigButton.BorderSizePixel = 0
             ConfigButton.Text = configName
@@ -669,6 +669,7 @@ function Library:CreateConfiguration()
             ConfigButton.Font = Enum.Font.Gotham
             ConfigButton.TextSize = 12
             ConfigButton.AutoButtonColor = false
+            ConfigButton.LayoutOrder = i
             ConfigButton.Parent = ConfigList
             
             local BtnCorner = Instance.new("UICorner")
@@ -679,7 +680,10 @@ function Library:CreateConfiguration()
                 SelectedConfig.Text = configName
                 SelectedConfig.TextColor3 = self.Theme.Text
                 ConfigList.Visible = false
-                TweenService:Create(ConfigDropdown, TweenInfo.new(0.2), {Size = UDim2.new(1, -20, 0, 35)}):Play()
+                
+                TweenService:Create(ConfigList, TweenInfo.new(0.2), {
+                    Size = UDim2.new(1, 0, 0, 0)
+                }):Play()
                 TweenService:Create(DropArrow, TweenInfo.new(0.2), {Rotation = 0}):Play()
             end)
             
@@ -693,22 +697,18 @@ function Library:CreateConfiguration()
         end
     end
     
-    -- GŁÓWNA ZMIANA: Odśwież listę za każdym razem gdy dropdown jest otwierany
     DropArrow.MouseButton1Click:Connect(function()
         ConfigList.Visible = not ConfigList.Visible
         
-        -- Zawsze odśwież listę gdy otwierasz dropdown
+        -- Odśwież listę gdy otwierasz dropdown
         if ConfigList.Visible then
             updateConfigList()
         end
         
         local configs = self:GetConfigs()
-        local listHeight = math.min(math.max(#configs, 1) * 32, 120)
+        local listHeight = math.min(math.max(#configs, 1) * 32 + 4, 120)
         
-        TweenService:Create(ConfigDropdown, TweenInfo.new(0.2), {
-            Size = ConfigList.Visible and UDim2.new(1, -20, 0, 35 + listHeight + 3) or UDim2.new(1, -20, 0, 35)
-        }):Play()
-        
+        -- ZMIENIONE: Animacja tylko ConfigList, nie całego ConfigDropdown
         TweenService:Create(ConfigList, TweenInfo.new(0.2), {
             Size = ConfigList.Visible and UDim2.new(1, 0, 0, listHeight) or UDim2.new(1, 0, 0, 0)
         }):Play()
@@ -760,12 +760,10 @@ function Library:CreateConfiguration()
         return Button
     end
     
-    -- GŁÓWNA ZMIANA: Po zapisaniu, nie trzeba już odświeżać - zrobi się to automatycznie gdy użytkownik otworzy dropdown
     createConfigButton("Save", UDim2.new(0, 0, 0, 0), Color3.fromRGB(70, 180, 80), function()
         local name = ConfigName.Text
         if name ~= "" then
             self:SaveConfig(name)
-            -- Config został zapisany, lista zostanie odświeżona gdy użytkownik otworzy dropdown
         else
             self:Notify({Title = "Error", Description = "Enter a config name", Duration = 2})
         end
@@ -793,7 +791,6 @@ function Library:CreateConfiguration()
             self:DeleteConfig(SelectedConfig.Text)
             SelectedConfig.Text = "Select config..."
             SelectedConfig.TextColor3 = self.Theme.TextDark
-            -- Config został usunięty, lista zostanie odświeżona gdy użytkownik otworzy dropdown
         else
             self:Notify({Title = "Error", Description = "Select a config first", Duration = 2})
         end
@@ -1753,4 +1750,5 @@ function Library:CreateThemeEditor()
 end
 
 return Library
+
 
