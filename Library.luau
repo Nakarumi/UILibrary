@@ -1,5 +1,5 @@
--- Roblox GUI Library v3.0 - WITH TAB SYSTEM
--- Użycie: loadstring(game:HttpGet("URL_DO_TEGO_SKRYPTU"))()
+-- Roblox GUI Library v3.0 - POPRAWIONA WERSJA
+-- Naprawione: 1) Zakładki wychodzące poza ekran 2) Minimalizacja 3) Błąd Fire
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -7,7 +7,7 @@ local UserInputService = game:GetService("UserInputService")
 local Library = {}
 Library.__index = Library
 
--- Domyślne kolory (można je łatwo zmienić)
+-- Domyślne kolory
 Library.Theme = {
     Background = Color3.fromRGB(25, 25, 35),
     Secondary = Color3.fromRGB(35, 35, 45),
@@ -95,10 +95,8 @@ function Library:Notify(config)
     DescLabel.TextTransparency = 1
     DescLabel.Parent = Notification
     
-    -- Oblicz wysokość na podstawie opisu
     local height = description ~= "" and 70 or 45
     
-    -- Przesuń istniejące notyfikacje w górę
     for _, notif in pairs(ScreenGui:GetChildren()) do
         if notif:IsA("Frame") and notif ~= Notification then
             TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
@@ -108,7 +106,6 @@ function Library:Notify(config)
         end
     end
     
-    -- Animacja wejścia
     TweenService:Create(Notification, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Size = UDim2.new(0, 300, 0, height),
         Position = UDim2.new(1, -320, 1, -20 - height),
@@ -119,7 +116,6 @@ function Library:Notify(config)
     TweenService:Create(TitleLabel, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
     TweenService:Create(DescLabel, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
     
-    -- Animacja wyjścia
     task.wait(duration)
     TweenService:Create(Notification, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
         Position = UDim2.new(1, 20, Notification.Position.Y.Scale, Notification.Position.Y.Offset),
@@ -134,7 +130,6 @@ function Library:Notify(config)
     Notification:Destroy()
 end
 
--- Funkcja do zmiany koloru w czasie rzeczywistym
 function Library:SetTheme(theme)
     for key, value in pairs(theme) do
         if self.Theme[key] then
@@ -147,7 +142,6 @@ function Library:SetTheme(theme)
     end
 end
 
--- Aktualizacja motywu
 function Library:UpdateTheme()
     if self.Main then
         TweenService:Create(self.Main, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Background}):Play()
@@ -161,7 +155,6 @@ function Library:UpdateTheme()
         end
     end
     
-    -- Update tabs
     if self.Tabs then
         for _, tab in pairs(self.Tabs) do
             if tab.Button then
@@ -207,7 +200,6 @@ function Library:UpdateTheme()
     end
 end
 
--- Funkcja pomocnicza do tworzenia cienia
 local function CreateShadow(parent)
     local Shadow = Instance.new("ImageLabel")
     Shadow.Name = "Shadow"
@@ -225,7 +217,6 @@ local function CreateShadow(parent)
     return Shadow
 end
 
--- Funkcja do tworzenia głównego okna z systemem zakładek
 function Library:CreateWindow(config)
     local Window = setmetatable({}, {__index = self})
     Window.Elements = {}
@@ -233,6 +224,7 @@ function Library:CreateWindow(config)
     Window.Theme = self.Theme
     Window.ToggleKey = Enum.KeyCode.RightControl
     Window.CurrentTab = nil
+    Window.IsVisible = true  -- NOWA ZMIENNA DO ŚLEDZENIA STANU
     
     local title = type(config) == "string" and config or config.Title or "GUI Library"
     local size = type(config) == "table" and config.Size or UDim2.new(0, 500, 0, 400)
@@ -240,14 +232,12 @@ function Library:CreateWindow(config)
     
     Window.ToggleKey = toggleKey
     
-    -- ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "LibraryGUI"
     ScreenGui.ResetOnSpawn = false
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = game.CoreGui
     
-    -- Main Frame
     local Main = Instance.new("Frame")
     Main.Name = "Main"
     Main.Size = UDim2.new(0, 0, 0, 0)
@@ -256,6 +246,7 @@ function Library:CreateWindow(config)
     Main.BackgroundColor3 = Window.Theme.Background
     Main.BorderSizePixel = 0
     Main.BackgroundTransparency = 1
+    Main.ClipsDescendants = true  -- WAŻNE: Zapobiega wychodzeniu elementów poza okno
     Main.Parent = ScreenGui
     
     CreateShadow(Main)
@@ -264,7 +255,6 @@ function Library:CreateWindow(config)
     Corner.CornerRadius = UDim.new(0, 12)
     Corner.Parent = Main
     
-    -- Title Bar
     local TitleBar = Instance.new("Frame")
     TitleBar.Name = "TitleBar"
     TitleBar.Size = UDim2.new(1, 0, 0, 45)
@@ -296,7 +286,6 @@ function Library:CreateWindow(config)
     TitleLabel.TextTransparency = 1
     TitleLabel.Parent = TitleBar
     
-    -- Close Button
     local CloseButton = Instance.new("TextButton")
     CloseButton.Size = UDim2.new(0, 35, 0, 35)
     CloseButton.Position = UDim2.new(1, -40, 0.5, -17.5)
@@ -341,12 +330,16 @@ function Library:CreateWindow(config)
         ScreenGui:Destroy()
     end)
     
-    -- Tab Bar (Container for tab buttons)
-    local TabBar = Instance.new("Frame")
+    -- POPRAWIONY Tab Bar - z ScrollingFrame
+    local TabBar = Instance.new("ScrollingFrame")
     TabBar.Name = "TabBar"
     TabBar.Size = UDim2.new(1, -24, 0, 35)
     TabBar.Position = UDim2.new(0, 12, 0, 55)
     TabBar.BackgroundTransparency = 1
+    TabBar.BorderSizePixel = 0
+    TabBar.ScrollBarThickness = 0
+    TabBar.CanvasSize = UDim2.new(0, 0, 0, 0)
+    TabBar.ScrollingDirection = Enum.ScrollingDirection.X
     TabBar.Parent = Main
     
     local TabLayout = Instance.new("UIListLayout")
@@ -355,12 +348,17 @@ function Library:CreateWindow(config)
     TabLayout.Padding = UDim.new(0, 8)
     TabLayout.Parent = TabBar
     
-    -- Tab Container Holder
+    -- Auto-update TabBar canvas size
+    TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        TabBar.CanvasSize = UDim2.new(0, TabLayout.AbsoluteContentSize.X + 10, 0, 0)
+    end)
+    
     local TabContainerHolder = Instance.new("Frame")
     TabContainerHolder.Name = "TabContainerHolder"
     TabContainerHolder.Size = UDim2.new(1, -24, 1, -105)
     TabContainerHolder.Position = UDim2.new(0, 12, 0, 100)
     TabContainerHolder.BackgroundTransparency = 1
+    TabContainerHolder.ClipsDescendants = true
     TabContainerHolder.Parent = Main
     
     -- Dragging
@@ -395,12 +393,13 @@ function Library:CreateWindow(config)
         end
     end)
     
-    -- Toggle GUI z keybindem
+    -- POPRAWIONY Toggle GUI
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if not gameProcessed and input.KeyCode == Window.ToggleKey then
-            local visible = Main.BackgroundTransparency == 0
+            Window.IsVisible = not Window.IsVisible
             
-            if visible then
+            if not Window.IsVisible then
+                -- Ukrywanie
                 TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
                     Size = UDim2.new(0, 0, 0, 0),
                     BackgroundTransparency = 1
@@ -415,10 +414,13 @@ function Library:CreateWindow(config)
                     end
                 end
             else
+                -- Pokazywanie
                 TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
                     Size = size,
                     BackgroundTransparency = 0
                 }):Play()
+                
+                task.wait(0.2)  -- Czekamy aż okno się pojawi
                 
                 for _, element in pairs(Main:GetDescendants()) do
                     if element:IsA("TextLabel") or element:IsA("TextButton") or element:IsA("TextBox") then
@@ -437,7 +439,6 @@ function Library:CreateWindow(config)
     Window.TabBar = TabBar
     Window.TabContainerHolder = TabContainerHolder
     
-    -- Animacja wejścia
     task.wait()
     TweenService:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Size = size,
@@ -451,12 +452,10 @@ function Library:CreateWindow(config)
     return Window
 end
 
--- Tworzenie zakładki (TAB) - zastępuje CreateSection
 function Library:CreateTab(name)
     local Tab = {}
     Tab.Name = name
     
-    -- Tab Button
     local TabButton = Instance.new("TextButton")
     TabButton.Name = "TabButton_" .. name
     TabButton.Size = UDim2.new(0, 120, 1, 0)
@@ -475,7 +474,6 @@ function Library:CreateTab(name)
     TabCorner.CornerRadius = UDim.new(0, 8)
     TabCorner.Parent = TabButton
     
-    -- Tab Container (ScrollingFrame for content)
     local TabContainer = Instance.new("ScrollingFrame")
     TabContainer.Name = "TabContainer_" .. name
     TabContainer.Size = UDim2.new(1, 0, 1, 0)
@@ -499,9 +497,7 @@ function Library:CreateTab(name)
     Tab.Button = TabButton
     Tab.Container = TabContainer
     
-    -- Switch to this tab when clicked
     TabButton.MouseButton1Click:Connect(function()
-        -- Hide all tabs
         for _, tab in pairs(self.Tabs) do
             tab.Container.Visible = false
             TweenService:Create(tab.Button, TweenInfo.new(0.2), {
@@ -509,17 +505,15 @@ function Library:CreateTab(name)
             }):Play()
         end
         
-        -- Show this tab
         TabContainer.Visible = true
         self.CurrentTab = Tab
-        self.Container = TabContainer  -- Set active container
+        self.Container = TabContainer
         
         TweenService:Create(TabButton, TweenInfo.new(0.2), {
             BackgroundColor3 = self.Theme.Accent
         }):Play()
     end)
     
-    -- Hover effects
     TabButton.MouseEnter:Connect(function()
         if self.CurrentTab ~= Tab then
             TweenService:Create(TabButton, TweenInfo.new(0.2), {
@@ -540,13 +534,11 @@ function Library:CreateTab(name)
         end
     end)
     
-    -- Animate tab button appearance
     TweenService:Create(TabButton, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(TabButton, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     
     table.insert(self.Tabs, Tab)
     
-    -- Auto-select first tab
     if #self.Tabs == 1 then
         TabContainer.Visible = true
         self.CurrentTab = Tab
@@ -559,9 +551,6 @@ function Library:CreateTab(name)
     return Tab
 end
 
--- Pozostałe funkcje pozostają bez zmian, ale używają self.Container (aktualnej zakładki)
-
--- Tworzenie buttona
 function Library:CreateButton(name, callback)
     local Button = Instance.new("TextButton")
     Button.Name = "Button"
@@ -591,7 +580,9 @@ function Library:CreateButton(name, callback)
         wait(0.15)
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = self.Theme.Secondary}):Play()
         
-        if callback then callback() end
+        if callback then 
+            pcall(callback)  -- POPRAWKA: Chroni przed błędami w callback
+        end
     end)
     
     Button.MouseEnter:Connect(function()
@@ -612,7 +603,6 @@ function Library:CreateButton(name, callback)
     return Button
 end
 
--- Tworzenie toggle
 function Library:CreateToggle(name, default, callback)
     local toggled = default or false
     
@@ -681,12 +671,15 @@ function Library:CreateToggle(name, default, callback)
             Position = toggled and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9)
         }):Play()
         
-        if callback then callback(toggled) end
+        if callback then 
+            pcall(callback, toggled)
+        end
     end)
     
     table.insert(self.Elements, Toggle)
     return Toggle
 end
+
 
 -- Tworzenie keybindu
 function Library:CreateKeybind(name, default, callback)
@@ -1346,3 +1339,4 @@ function Library:CreateThemeEditor()
 end
 
 return Library
+
