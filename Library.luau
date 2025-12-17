@@ -628,6 +628,7 @@ function Library:CreateConfiguration()
     
     local ListLayout = Instance.new("UIListLayout")
     ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     ListLayout.Padding = UDim.new(0, 2)
     ListLayout.Parent = ConfigList
     
@@ -1751,6 +1752,7 @@ function Library:CreateThemeEditor()
 end
 
 return Library
+
 
 
 
