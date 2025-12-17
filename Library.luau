@@ -546,7 +546,6 @@ function Library:CreateConfiguration()
     ConfigCorner.Parent = ConfigSection
     
     local ConfigLabel = Instance.new("TextLabel")
-    ConfigLabel.Name = "ConfigLabel"
     ConfigLabel.Size = UDim2.new(1, -20, 0, 30)
     ConfigLabel.Position = UDim2.new(0, 10, 0, 8)
     ConfigLabel.BackgroundTransparency = 1
@@ -622,80 +621,89 @@ function Library:CreateConfiguration()
     ListCorner.CornerRadius = UDim.new(0, 6)
     ListCorner.Parent = ConfigList
     
-    -- FIXED: Remove UIListLayout since we position manually
-    -- Don't use UIListLayout when manually positioning elements
+    local ListLayout = Instance.new("UIListLayout")
+    ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ListLayout.Padding = UDim.new(0, 2)
+    ListLayout.Parent = ConfigList
     
+    -- GŁÓWNA ZMIANA: updateConfigList teraz działa poprawnie
     local function updateConfigList()
-        -- Clear ALL children (both buttons and labels)
+        -- Wyczyść wszystkie istniejące elementy
         for _, child in pairs(ConfigList:GetChildren()) do
             if child:IsA("TextButton") or child:IsA("TextLabel") then
                 child:Destroy()
             end
         end
         
+        -- Pobierz listę configów BEZPOŚREDNIO z plików
         local configs = self:GetConfigs()
         
+        print("DEBUG: Znaleziono configów:", #configs) -- Debug
+        for _, name in pairs(configs) do
+            print("  - " .. name) -- Debug
+        end
+        
+        local listHeight = math.max(#configs * 32, 32)
+        ConfigList.CanvasSize = UDim2.new(0, 0, 0, listHeight)
+        
         if #configs == 0 then
-            ConfigList.CanvasSize = UDim2.new(0, 0, 0, 32)
-            
             local NoConfigs = Instance.new("TextLabel")
-            NoConfigs.Name = "NoConfigsLabel"
-            NoConfigs.Size = UDim2.new(1, -8, 0, 30)
-            NoConfigs.Position = UDim2.new(0, 4, 0, 1)
+            NoConfigs.Size = UDim2.new(1, 0, 0, 30)
             NoConfigs.BackgroundTransparency = 1
             NoConfigs.Text = "No configs found"
             NoConfigs.TextColor3 = self.Theme.TextDark
             NoConfigs.Font = Enum.Font.Gotham
             NoConfigs.TextSize = 12
-            NoConfigs.TextTransparency = 0  -- FIXED: Make visible
             NoConfigs.Parent = ConfigList
-        else
-            ConfigList.CanvasSize = UDim2.new(0, 0, 0, #configs * 33 + 4)
+            return
+        end
+        
+        -- Twórz przyciski dla każdego configa
+        for _, configName in pairs(configs) do
+            local ConfigButton = Instance.new("TextButton")
+            ConfigButton.Size = UDim2.new(1, -8, 0, 30)
+            ConfigButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+            ConfigButton.BorderSizePixel = 0
+            ConfigButton.Text = configName
+            ConfigButton.TextColor3 = self.Theme.Text
+            ConfigButton.Font = Enum.Font.Gotham
+            ConfigButton.TextSize = 12
+            ConfigButton.AutoButtonColor = false
+            ConfigButton.Parent = ConfigList
             
-            for i, configName in ipairs(configs) do
-                local ConfigButton = Instance.new("TextButton")
-                ConfigButton.Name = "ConfigButton_" .. configName
-                ConfigButton.Size = UDim2.new(1, -8, 0, 30)
-                ConfigButton.Position = UDim2.new(0, 4, 0, (i - 1) * 33 + 1)  -- FIXED: Manual positioning
-                ConfigButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-                ConfigButton.BorderSizePixel = 0
-                ConfigButton.Text = configName
-                ConfigButton.TextColor3 = self.Theme.Text
-                ConfigButton.Font = Enum.Font.Gotham
-                ConfigButton.TextSize = 12
-                ConfigButton.TextTransparency = 0  -- FIXED: Make visible
-                ConfigButton.AutoButtonColor = false
-                ConfigButton.Parent = ConfigList
-                
-                local BtnCorner = Instance.new("UICorner")
-                BtnCorner.CornerRadius = UDim.new(0, 4)
-                BtnCorner.Parent = ConfigButton
-                
-                ConfigButton.MouseButton1Click:Connect(function()
-                    SelectedConfig.Text = configName
-                    SelectedConfig.TextColor3 = self.Theme.Text
-                    ConfigList.Visible = false
-                    TweenService:Create(ConfigDropdown, TweenInfo.new(0.2), {Size = UDim2.new(1, -20, 0, 35)}):Play()
-                    TweenService:Create(DropArrow, TweenInfo.new(0.2), {Rotation = 0}):Play()
-                end)
-                
-                ConfigButton.MouseEnter:Connect(function()
-                    TweenService:Create(ConfigButton, TweenInfo.new(0.15), {BackgroundColor3 = self.Theme.Accent}):Play()
-                end)
-                
-                ConfigButton.MouseLeave:Connect(function()
-                    TweenService:Create(ConfigButton, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(55, 55, 65)}):Play()
-                end)
-            end
+            local BtnCorner = Instance.new("UICorner")
+            BtnCorner.CornerRadius = UDim.new(0, 4)
+            BtnCorner.Parent = ConfigButton
+            
+            ConfigButton.MouseButton1Click:Connect(function()
+                SelectedConfig.Text = configName
+                SelectedConfig.TextColor3 = self.Theme.Text
+                ConfigList.Visible = false
+                TweenService:Create(ConfigDropdown, TweenInfo.new(0.2), {Size = UDim2.new(1, -20, 0, 35)}):Play()
+                TweenService:Create(DropArrow, TweenInfo.new(0.2), {Rotation = 0}):Play()
+            end)
+            
+            ConfigButton.MouseEnter:Connect(function()
+                TweenService:Create(ConfigButton, TweenInfo.new(0.15), {BackgroundColor3 = self.Theme.Accent}):Play()
+            end)
+            
+            ConfigButton.MouseLeave:Connect(function()
+                TweenService:Create(ConfigButton, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(55, 55, 65)}):Play()
+            end)
         end
     end
     
+    -- GŁÓWNA ZMIANA: Odśwież listę za każdym razem gdy dropdown jest otwierany
     DropArrow.MouseButton1Click:Connect(function()
         ConfigList.Visible = not ConfigList.Visible
-        updateConfigList()
+        
+        -- Zawsze odśwież listę gdy otwierasz dropdown
+        if ConfigList.Visible then
+            updateConfigList()
+        end
         
         local configs = self:GetConfigs()
-        local listHeight = math.min(math.max(#configs, 1) * 33, 120)
+        local listHeight = math.min(math.max(#configs, 1) * 32, 120)
         
         TweenService:Create(ConfigDropdown, TweenInfo.new(0.2), {
             Size = ConfigList.Visible and UDim2.new(1, -20, 0, 35 + listHeight + 3) or UDim2.new(1, -20, 0, 35)
@@ -752,12 +760,12 @@ function Library:CreateConfiguration()
         return Button
     end
     
+    -- GŁÓWNA ZMIANA: Po zapisaniu, nie trzeba już odświeżać - zrobi się to automatycznie gdy użytkownik otworzy dropdown
     createConfigButton("Save", UDim2.new(0, 0, 0, 0), Color3.fromRGB(70, 180, 80), function()
         local name = ConfigName.Text
         if name ~= "" then
             self:SaveConfig(name)
-            task.wait(0.3)
-            updateConfigList()
+            -- Config został zapisany, lista zostanie odświeżona gdy użytkownik otworzy dropdown
         else
             self:Notify({Title = "Error", Description = "Enter a config name", Duration = 2})
         end
@@ -785,8 +793,7 @@ function Library:CreateConfiguration()
             self:DeleteConfig(SelectedConfig.Text)
             SelectedConfig.Text = "Select config..."
             SelectedConfig.TextColor3 = self.Theme.TextDark
-            task.wait(0.3)
-            updateConfigList()
+            -- Config został usunięty, lista zostanie odświeżona gdy użytkownik otworzy dropdown
         else
             self:Notify({Title = "Error", Description = "Select a config first", Duration = 2})
         end
@@ -794,11 +801,6 @@ function Library:CreateConfiguration()
     
     TweenService:Create(ConfigSection, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(ConfigLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
-    
-    task.spawn(function()
-        task.wait(0.5)
-        updateConfigList()
-    end)
     
     table.insert(self.Elements, ConfigSection)
     return ConfigSection
@@ -1751,3 +1753,4 @@ function Library:CreateThemeEditor()
 end
 
 return Library
+
