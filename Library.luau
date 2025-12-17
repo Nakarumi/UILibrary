@@ -1,4 +1,4 @@
--- Roblox GUI Library v2.0
+-- Roblox GUI Library v2.5
 -- Użycie: loadstring(game:HttpGet("URL_DO_TEGO_SKRYPTU"))()
 
 local TweenService = game:GetService("TweenService")
@@ -17,6 +17,123 @@ Library.Theme = {
     Shadow = Color3.fromRGB(0, 0, 0)
 }
 
+-- Notification System
+Library.Notifications = {}
+
+function Library:Notify(config)
+    local title = type(config) == "string" and config or config.Title or "Notification"
+    local description = type(config) == "table" and config.Description or ""
+    local duration = type(config) == "table" and config.Duration or 3
+    
+    local ScreenGui = game.CoreGui:FindFirstChild("LibraryNotifications")
+    if not ScreenGui then
+        ScreenGui = Instance.new("ScreenGui")
+        ScreenGui.Name = "LibraryNotifications"
+        ScreenGui.ResetOnSpawn = false
+        ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        ScreenGui.Parent = game.CoreGui
+    end
+    
+    local Notification = Instance.new("Frame")
+    Notification.Size = UDim2.new(0, 300, 0, 0)
+    Notification.Position = UDim2.new(1, -320, 1, 20)
+    Notification.BackgroundColor3 = self.Theme.Secondary
+    Notification.BorderSizePixel = 0
+    Notification.BackgroundTransparency = 1
+    Notification.Parent = ScreenGui
+    
+    local Shadow = Instance.new("ImageLabel")
+    Shadow.Name = "Shadow"
+    Shadow.Size = UDim2.new(1, 30, 1, 30)
+    Shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    Shadow.BackgroundTransparency = 1
+    Shadow.Image = "rbxassetid://6014261993"
+    Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    Shadow.ImageTransparency = 1
+    Shadow.ScaleType = Enum.ScaleType.Slice
+    Shadow.SliceCenter = Rect.new(49, 49, 450, 450)
+    Shadow.ZIndex = Notification.ZIndex - 1
+    Shadow.Parent = Notification
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 10)
+    Corner.Parent = Notification
+    
+    local AccentBar = Instance.new("Frame")
+    AccentBar.Size = UDim2.new(0, 4, 1, 0)
+    AccentBar.BackgroundColor3 = self.Theme.Accent
+    AccentBar.BorderSizePixel = 0
+    AccentBar.Parent = Notification
+    
+    local BarCorner = Instance.new("UICorner")
+    BarCorner.CornerRadius = UDim.new(1, 0)
+    BarCorner.Parent = AccentBar
+    
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Size = UDim2.new(1, -20, 0, 25)
+    TitleLabel.Position = UDim2.new(0, 15, 0, 8)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = title
+    TitleLabel.TextColor3 = self.Theme.Text
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextSize = 15
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.TextTransparency = 1
+    TitleLabel.Parent = Notification
+    
+    local DescLabel = Instance.new("TextLabel")
+    DescLabel.Size = UDim2.new(1, -20, 0, 20)
+    DescLabel.Position = UDim2.new(0, 15, 0, 33)
+    DescLabel.BackgroundTransparency = 1
+    DescLabel.Text = description
+    DescLabel.TextColor3 = self.Theme.TextDark
+    DescLabel.Font = Enum.Font.Gotham
+    DescLabel.TextSize = 13
+    DescLabel.TextXAlignment = Enum.TextXAlignment.Left
+    DescLabel.TextWrapped = true
+    DescLabel.TextTransparency = 1
+    DescLabel.Parent = Notification
+    
+    -- Oblicz wysokość na podstawie opisu
+    local height = description ~= "" and 70 or 45
+    
+    -- Przesuń istniejące notyfikacje w górę
+    for _, notif in pairs(ScreenGui:GetChildren()) do
+        if notif:IsA("Frame") and notif ~= Notification then
+            TweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+                Position = UDim2.new(notif.Position.X.Scale, notif.Position.X.Offset, 
+                                     notif.Position.Y.Scale, notif.Position.Y.Offset - height - 10)
+            }):Play()
+        end
+    end
+    
+    -- Animacja wejścia
+    TweenService:Create(Notification, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 300, 0, height),
+        Position = UDim2.new(1, -320, 1, -20 - height),
+        BackgroundTransparency = 0
+    }):Play()
+    
+    TweenService:Create(Shadow, TweenInfo.new(0.3), {ImageTransparency = 0.5}):Play()
+    TweenService:Create(TitleLabel, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+    TweenService:Create(DescLabel, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+    
+    -- Animacja wyjścia
+    task.wait(duration)
+    TweenService:Create(Notification, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Position = UDim2.new(1, 20, Notification.Position.Y.Scale, Notification.Position.Y.Offset),
+        BackgroundTransparency = 1
+    }):Play()
+    
+    TweenService:Create(Shadow, TweenInfo.new(0.3), {ImageTransparency = 1}):Play()
+    TweenService:Create(TitleLabel, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
+    TweenService:Create(DescLabel, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
+    
+    task.wait(0.3)
+    Notification:Destroy()
+end
+
 -- Funkcja do zmiany koloru w czasie rzeczywistym
 function Library:SetTheme(theme)
     for key, value in pairs(theme) do
@@ -25,13 +142,12 @@ function Library:SetTheme(theme)
         end
     end
     
-    -- Aktualizuj wszystkie elementy jeśli okno istnieje
     if self.Elements then
         self:UpdateTheme()
     end
 end
 
--- Aktualizacja motywu dla istniejących elementów
+-- Aktualizacja motywu
 function Library:UpdateTheme()
     if self.Main then
         TweenService:Create(self.Main, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Background}):Play()
@@ -39,14 +155,42 @@ function Library:UpdateTheme()
     
     if self.TitleBar then
         TweenService:Create(self.TitleBar, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Secondary}):Play()
+        local TitleFix = self.TitleBar:FindFirstChild("TitleFix")
+        if TitleFix then
+            TweenService:Create(TitleFix, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Secondary}):Play()
+        end
+    end
+    
+    if self.Container then
+        TweenService:Create(self.Container, TweenInfo.new(0.3), {ScrollBarImageColor3 = self.Theme.Accent}):Play()
     end
     
     for _, element in pairs(self.Elements) do
-        if element:IsA("Frame") or element:IsA("TextButton") then
-            if element.Name == "Section" then
+        if element and element.Parent then
+            if element:IsA("Frame") or element:IsA("TextButton") then
                 TweenService:Create(element, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Secondary}):Play()
-            elseif element.Name ~= "Shadow" then
-                TweenService:Create(element, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Secondary}):Play()
+            end
+            
+            for _, child in pairs(element:GetDescendants()) do
+                if child:IsA("TextLabel") then
+                    if child.Name == "SectionLabel" then
+                        TweenService:Create(child, TweenInfo.new(0.3), {TextColor3 = self.Theme.Accent}):Play()
+                    elseif child.Name == "ValueLabel" or child.Name == "SelectedLabel" then
+                        TweenService:Create(child, TweenInfo.new(0.3), {TextColor3 = self.Theme.Accent}):Play()
+                    elseif child.Name ~= "Arrow" then
+                        TweenService:Create(child, TweenInfo.new(0.3), {TextColor3 = self.Theme.Text}):Play()
+                    end
+                end
+                
+                if child.Name == "SliderFill" then
+                    TweenService:Create(child, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Accent}):Play()
+                elseif child.Name == "ToggleButton" then
+                    if child.BackgroundColor3 ~= Color3.fromRGB(50, 50, 60) then
+                        TweenService:Create(child, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Accent}):Play()
+                    end
+                elseif child.Name == "KeybindDisplay" then
+                    TweenService:Create(child, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Accent}):Play()
+                end
             end
         end
     end
@@ -74,9 +218,14 @@ end
 function Library:CreateWindow(config)
     local Window = setmetatable({}, {__index = self})
     Window.Elements = {}
+    Window.Theme = self.Theme
+    Window.ToggleKey = Enum.KeyCode.RightControl
     
     local title = type(config) == "string" and config or config.Title or "GUI Library"
     local size = type(config) == "table" and config.Size or UDim2.new(0, 500, 0, 400)
+    local toggleKey = type(config) == "table" and config.ToggleKey or Enum.KeyCode.RightControl
+    
+    Window.ToggleKey = toggleKey
     
     -- ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
@@ -85,7 +234,7 @@ function Library:CreateWindow(config)
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     ScreenGui.Parent = game.CoreGui
     
-    -- Main Frame (startuje niewidzialny)
+    -- Main Frame
     local Main = Instance.new("Frame")
     Main.Name = "Main"
     Main.Size = UDim2.new(0, 0, 0, 0)
@@ -96,10 +245,8 @@ function Library:CreateWindow(config)
     Main.BackgroundTransparency = 1
     Main.Parent = ScreenGui
     
-    -- Shadow
     CreateShadow(Main)
     
-    -- Corner
     local Corner = Instance.new("UICorner")
     Corner.CornerRadius = UDim.new(0, 12)
     Corner.Parent = Main
@@ -116,15 +263,14 @@ function Library:CreateWindow(config)
     TitleCorner.CornerRadius = UDim.new(0, 12)
     TitleCorner.Parent = TitleBar
     
-    -- Fix dla dolnych rogów title bar
     local TitleFix = Instance.new("Frame")
+    TitleFix.Name = "TitleFix"
     TitleFix.Size = UDim2.new(1, 0, 0, 12)
     TitleFix.Position = UDim2.new(0, 0, 1, -12)
     TitleFix.BackgroundColor3 = Window.Theme.Secondary
     TitleFix.BorderSizePixel = 0
     TitleFix.Parent = TitleBar
     
-    -- Title Text
     local TitleLabel = Instance.new("TextLabel")
     TitleLabel.Size = UDim2.new(1, -60, 1, 0)
     TitleLabel.Position = UDim2.new(0, 15, 0, 0)
@@ -164,7 +310,6 @@ function Library:CreateWindow(config)
     end)
     
     CloseButton.MouseButton1Click:Connect(function()
-        -- Animacja zamykania
         TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
             Size = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1
@@ -183,7 +328,7 @@ function Library:CreateWindow(config)
         ScreenGui:Destroy()
     end)
     
-    -- Container dla elementów
+    -- Container
     local Container = Instance.new("ScrollingFrame")
     Container.Name = "Container"
     Container.Size = UDim2.new(1, -24, 1, -65)
@@ -200,12 +345,11 @@ function Library:CreateWindow(config)
     Layout.Padding = UDim.new(0, 10)
     Layout.Parent = Container
     
-    -- Auto-resize canvas
     Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         Container.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 10)
     end)
     
-    -- Dragging (smooth)
+    -- Dragging
     local dragging, dragInput, dragStart, startPos
     
     TitleBar.InputBegan:Connect(function(input)
@@ -234,6 +378,43 @@ function Library:CreateWindow(config)
             TweenService:Create(Main, TweenInfo.new(0.1, Enum.EasingStyle.Linear), {
                 Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
             }):Play()
+        end
+    end)
+    
+    -- Toggle GUI z keybindem
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == Window.ToggleKey then
+            local visible = Main.BackgroundTransparency == 0
+            
+            if visible then
+                TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                    Size = UDim2.new(0, 0, 0, 0),
+                    BackgroundTransparency = 1
+                }):Play()
+                
+                for _, element in pairs(Main:GetDescendants()) do
+                    if element:IsA("TextLabel") or element:IsA("TextButton") or element:IsA("TextBox") then
+                        TweenService:Create(element, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
+                    end
+                    if element:IsA("ImageLabel") and element.Name == "Shadow" then
+                        TweenService:Create(element, TweenInfo.new(0.2), {ImageTransparency = 1}):Play()
+                    end
+                end
+            else
+                TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                    Size = size,
+                    BackgroundTransparency = 0
+                }):Play()
+                
+                for _, element in pairs(Main:GetDescendants()) do
+                    if element:IsA("TextLabel") or element:IsA("TextButton") or element:IsA("TextBox") then
+                        TweenService:Create(element, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+                    end
+                    if element:IsA("ImageLabel") and element.Name == "Shadow" then
+                        TweenService:Create(element, TweenInfo.new(0.3), {ImageTransparency = 0.5}):Play()
+                    end
+                end
+            end
         end
     end)
     
@@ -272,6 +453,7 @@ function Library:CreateSection(name)
     SectionCorner.Parent = Section
     
     local SectionLabel = Instance.new("TextLabel")
+    SectionLabel.Name = "SectionLabel"
     SectionLabel.Size = UDim2.new(1, -20, 1, 0)
     SectionLabel.Position = UDim2.new(0, 12, 0, 0)
     SectionLabel.BackgroundTransparency = 1
@@ -283,7 +465,6 @@ function Library:CreateSection(name)
     SectionLabel.TextTransparency = 1
     SectionLabel.Parent = Section
     
-    -- Animacja wejścia
     TweenService:Create(Section, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(SectionLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     
@@ -313,7 +494,6 @@ function Library:CreateButton(name, callback)
     ButtonCorner.CornerRadius = UDim.new(0, 8)
     ButtonCorner.Parent = Button
     
-    -- Animacja wejścia
     TweenService:Create(Button, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(Button, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     
@@ -328,9 +508,9 @@ function Library:CreateButton(name, callback)
     Button.MouseEnter:Connect(function()
         TweenService:Create(Button, TweenInfo.new(0.2), {
             BackgroundColor3 = Color3.fromRGB(
-                self.Theme.Secondary.R * 255 + 15,
-                self.Theme.Secondary.G * 255 + 15,
-                self.Theme.Secondary.B * 255 + 15
+                math.min(self.Theme.Secondary.R * 255 + 15, 255),
+                math.min(self.Theme.Secondary.G * 255 + 15, 255),
+                math.min(self.Theme.Secondary.B * 255 + 15, 255)
             )
         }):Play()
     end)
@@ -374,6 +554,7 @@ function Library:CreateToggle(name, default, callback)
     ToggleLabel.Parent = Toggle
     
     local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Name = "ToggleButton"
     ToggleButton.Size = UDim2.new(0, 44, 0, 22)
     ToggleButton.Position = UDim2.new(1, -54, 0.5, -11)
     ToggleButton.BackgroundColor3 = toggled and self.Theme.Accent or Color3.fromRGB(50, 50, 60)
@@ -397,7 +578,6 @@ function Library:CreateToggle(name, default, callback)
     CircleCorner.CornerRadius = UDim.new(1, 0)
     CircleCorner.Parent = ToggleCircle
     
-    -- Animacja wejścia
     TweenService:Create(Toggle, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(ToggleLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     
@@ -417,6 +597,88 @@ function Library:CreateToggle(name, default, callback)
     
     table.insert(self.Elements, Toggle)
     return Toggle
+end
+
+-- Tworzenie keybindu
+function Library:CreateKeybind(name, default, callback)
+    local currentKey = default or Enum.KeyCode.E
+    local binding = false
+    
+    local Keybind = Instance.new("Frame")
+    Keybind.Name = "Keybind"
+    Keybind.Size = UDim2.new(1, 0, 0, 42)
+    Keybind.BackgroundColor3 = self.Theme.Secondary
+    Keybind.BorderSizePixel = 0
+    Keybind.BackgroundTransparency = 1
+    Keybind.Parent = self.Container
+    
+    CreateShadow(Keybind)
+    
+    local KeybindCorner = Instance.new("UICorner")
+    KeybindCorner.CornerRadius = UDim.new(0, 8)
+    KeybindCorner.Parent = Keybind
+    
+    local KeybindLabel = Instance.new("TextLabel")
+    KeybindLabel.Size = UDim2.new(1, -90, 1, 0)
+    KeybindLabel.Position = UDim2.new(0, 12, 0, 0)
+    KeybindLabel.BackgroundTransparency = 1
+    KeybindLabel.Text = name
+    KeybindLabel.TextColor3 = self.Theme.Text
+    KeybindLabel.Font = Enum.Font.GothamSemibold
+    KeybindLabel.TextSize = 14
+    KeybindLabel.TextXAlignment = Enum.TextXAlignment.Left
+    KeybindLabel.TextTransparency = 1
+    KeybindLabel.Parent = Keybind
+    
+    local KeybindDisplay = Instance.new("TextButton")
+    KeybindDisplay.Name = "KeybindDisplay"
+    KeybindDisplay.Size = UDim2.new(0, 75, 0, 28)
+    KeybindDisplay.Position = UDim2.new(1, -85, 0.5, -14)
+    KeybindDisplay.BackgroundColor3 = self.Theme.Accent
+    KeybindDisplay.BorderSizePixel = 0
+    KeybindDisplay.Text = currentKey.Name
+    KeybindDisplay.TextColor3 = self.Theme.Text
+    KeybindDisplay.Font = Enum.Font.GothamBold
+    KeybindDisplay.TextSize = 12
+    KeybindDisplay.AutoButtonColor = false
+    KeybindDisplay.Parent = Keybind
+    
+    local DisplayCorner = Instance.new("UICorner")
+    DisplayCorner.CornerRadius = UDim.new(0, 6)
+    DisplayCorner.Parent = KeybindDisplay
+    
+    TweenService:Create(Keybind, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(KeybindLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    
+    KeybindDisplay.MouseButton1Click:Connect(function()
+        binding = true
+        KeybindDisplay.Text = "..."
+        TweenService:Create(KeybindDisplay, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(255, 200, 50)
+        }):Play()
+    end)
+    
+    local connection
+    connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if binding and input.UserInputType == Enum.UserInputType.Keyboard then
+            binding = false
+            currentKey = input.KeyCode
+            KeybindDisplay.Text = currentKey.Name
+            
+            TweenService:Create(KeybindDisplay, TweenInfo.new(0.2), {
+                BackgroundColor3 = self.Theme.Accent
+            }):Play()
+        end
+    end)
+    
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == currentKey and not binding then
+            if callback then callback() end
+        end
+    end)
+    
+    table.insert(self.Elements, Keybind)
+    return Keybind
 end
 
 -- Tworzenie slidera
@@ -450,6 +712,7 @@ function Library:CreateSlider(name, min, max, default, callback)
     SliderLabel.Parent = Slider
     
     local ValueLabel = Instance.new("TextLabel")
+    ValueLabel.Name = "ValueLabel"
     ValueLabel.Size = UDim2.new(0, 55, 0, 22)
     ValueLabel.Position = UDim2.new(1, -65, 0, 8)
     ValueLabel.BackgroundTransparency = 1
@@ -473,6 +736,7 @@ function Library:CreateSlider(name, min, max, default, callback)
     BarCorner.Parent = SliderBar
     
     local SliderFill = Instance.new("Frame")
+    SliderFill.Name = "SliderFill"
     SliderFill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
     SliderFill.BackgroundColor3 = self.Theme.Accent
     SliderFill.BorderSizePixel = 0
@@ -482,7 +746,6 @@ function Library:CreateSlider(name, min, max, default, callback)
     FillCorner.CornerRadius = UDim.new(1, 0)
     FillCorner.Parent = SliderFill
     
-    -- Animacja wejścia
     TweenService:Create(Slider, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(SliderLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     TweenService:Create(ValueLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
@@ -566,7 +829,6 @@ function Library:CreateTextbox(name, placeholder, callback)
     InputCorner.CornerRadius = UDim.new(0, 6)
     InputCorner.Parent = Input
     
-    -- Animacja wejścia
     TweenService:Create(Textbox, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(TextboxLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     TweenService:Create(Input, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
@@ -625,6 +887,7 @@ function Library:CreateDropdown(name, options, callback)
     DropdownLabel.Parent = Dropdown
     
     local SelectedLabel = Instance.new("TextLabel")
+    SelectedLabel.Name = "SelectedLabel"
     SelectedLabel.Size = UDim2.new(0.5, -24, 1, 0)
     SelectedLabel.Position = UDim2.new(0.5, 0, 0, 0)
     SelectedLabel.BackgroundTransparency = 1
@@ -637,6 +900,7 @@ function Library:CreateDropdown(name, options, callback)
     SelectedLabel.Parent = Dropdown
     
     local Arrow = Instance.new("TextLabel")
+    Arrow.Name = "Arrow"
     Arrow.Size = UDim2.new(0, 20, 0, 20)
     Arrow.Position = UDim2.new(1, -28, 0.5, -10)
     Arrow.BackgroundTransparency = 1
@@ -698,7 +962,6 @@ function Library:CreateDropdown(name, options, callback)
         end)
     end
     
-    -- Animacja wejścia
     TweenService:Create(Dropdown, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(DropdownLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     TweenService:Create(SelectedLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
@@ -720,87 +983,113 @@ function Library:CreateDropdown(name, options, callback)
     return Dropdown
 end
 
--- Live Theme Editor
-function Library:CreateThemeEditor()
-    local ThemeWindow = self:CreateWindow({Title = "Theme Editor", Size = UDim2.new(0, 400, 0, 350)})
+-- Color Picker z kołem kolorów
+function Library:CreateColorPicker(name, default, callback)
+    local currentColor = default or Color3.fromRGB(255, 255, 255)
+    local pickerOpen = false
     
-    ThemeWindow:CreateSection("Color Configuration")
+    local ColorPicker = Instance.new("Frame")
+    ColorPicker.Name = "ColorPicker"
+    ColorPicker.Size = UDim2.new(1, 0, 0, 42)
+    ColorPicker.BackgroundColor3 = self.Theme.Secondary
+    ColorPicker.BorderSizePixel = 0
+    ColorPicker.BackgroundTransparency = 1
+    ColorPicker.ClipsDescendants = true
+    ColorPicker.Parent = self.Container
     
-    local function rgbToHex(color)
-        return string.format("#%02X%02X%02X", color.R * 255, color.G * 255, color.B * 255)
-    end
+    CreateShadow(ColorPicker)
     
-    local function hexToRgb(hex)
-        hex = hex:gsub("#", "")
-        return Color3.fromRGB(
-            tonumber(hex:sub(1,2), 16),
-            tonumber(hex:sub(3,4), 16),
-            tonumber(hex:sub(5,6), 16)
-        )
-    end
+    local PickerCorner = Instance.new("UICorner")
+    PickerCorner.CornerRadius = UDim.new(0, 8)
+    PickerCorner.Parent = ColorPicker
     
-    -- Background Color
-    ThemeWindow:CreateTextbox("Background", rgbToHex(self.Theme.Background), function(text)
-        local success, color = pcall(hexToRgb, text)
-        if success then
-            self.Theme.Background = color
-            self:UpdateTheme()
-        end
+    local PickerLabel = Instance.new("TextLabel")
+    PickerLabel.Size = UDim2.new(1, -50, 0, 42)
+    PickerLabel.Position = UDim2.new(0, 12, 0, 0)
+    PickerLabel.BackgroundTransparency = 1
+    PickerLabel.Text = name
+    PickerLabel.TextColor3 = self.Theme.Text
+    PickerLabel.Font = Enum.Font.GothamSemibold
+    PickerLabel.TextSize = 14
+    PickerLabel.TextXAlignment = Enum.TextXAlignment.Left
+    PickerLabel.TextTransparency = 1
+    PickerLabel.Parent = ColorPicker
+    
+    local ColorDisplay = Instance.new("TextButton")
+    ColorDisplay.Size = UDim2.new(0, 32, 0, 32)
+    ColorDisplay.Position = UDim2.new(1, -42, 0, 5)
+    ColorDisplay.BackgroundColor3 = currentColor
+    ColorDisplay.BorderSizePixel = 0
+    ColorDisplay.Text = ""
+    ColorDisplay.AutoButtonColor = false
+    ColorDisplay.Parent = ColorPicker
+    
+    local DisplayCorner = Instance.new("UICorner")
+    DisplayCorner.CornerRadius = UDim.new(0, 6)
+    DisplayCorner.Parent = ColorDisplay
+    
+    -- Koło kolorów
+    local ColorWheel = Instance.new("Frame")
+    ColorWheel.Size = UDim2.new(0, 180, 0, 180)
+    ColorWheel.Position = UDim2.new(0.5, -90, 0, 52)
+    ColorWheel.BackgroundTransparency = 1
+    ColorWheel.Parent = ColorPicker
+    
+    local WheelImage = Instance.new("ImageLabel")
+    WheelImage.Size = UDim2.new(1, 0, 1, 0)
+    WheelImage.BackgroundTransparency = 1
+    WheelImage.Image = "rbxassetid://698052001"
+    WheelImage.Parent = ColorWheel
+    
+    local WheelCorner = Instance.new("UICorner")
+    WheelCorner.CornerRadius = UDim.new(1, 0)
+    WheelCorner.Parent = WheelImage
+    
+    -- RGB Sliders
+    local RSlider = Instance.new("Frame")
+    RSlider.Size = UDim2.new(1, -24, 0, 20)
+    RSlider.Position = UDim2.new(0, 12, 0, 242)
+    RSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    RSlider.BorderSizePixel = 0
+    RSlider.Parent = ColorPicker
+    
+    local RCorner = Instance.new("UICorner")
+    RCorner.CornerRadius = UDim.new(0, 4)
+    RCorner.Parent = RSlider
+    
+    local RFill = Instance.new("Frame")
+    RFill.Size = UDim2.new(currentColor.R, 0, 1, 0)
+    RFill.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    RFill.BorderSizePixel = 0
+    RFill.Parent = RSlider
+    
+    local RFillCorner = Instance.new("UICorner")
+    RFillCorner.CornerRadius = UDim.new(0, 4)
+    RFillCorner.Parent = RFill
+    
+    local RLabel = Instance.new("TextLabel")
+    RLabel.Size = UDim2.new(0, 15, 1, 0)
+    RLabel.Position = UDim2.new(0, 5, 0, 0)
+    RLabel.BackgroundTransparency = 1
+    RLabel.Text = "R"
+    RLabel.TextColor3 = self.Theme.Text
+    RLabel.Font = Enum.Font.GothamBold
+    RLabel.TextSize = 12
+    RLabel.Parent = RSlider
+    
+    TweenService:Create(ColorPicker, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(PickerLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    
+    ColorDisplay.MouseButton1Click:Connect(function()
+        pickerOpen = not pickerOpen
+        
+        TweenService:Create(ColorPicker, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            Size = pickerOpen and UDim2.new(1, 0, 0, 300) or UDim2.new(1, 0, 0, 42)
+        }):Play()
     end)
     
-    -- Secondary Color
-    ThemeWindow:CreateTextbox("Secondary", rgbToHex(self.Theme.Secondary), function(text)
-        local success, color = pcall(hexToRgb, text)
-        if success then
-            self.Theme.Secondary = color
-            self:UpdateTheme()
-        end
-    end)
-    
-    -- Accent Color
-    ThemeWindow:CreateTextbox("Accent", rgbToHex(self.Theme.Accent), function(text)
-        local success, color = pcall(hexToRgb, text)
-        if success then
-            self.Theme.Accent = color
-            self:UpdateTheme()
-        end
-    end)
-    
-    ThemeWindow:CreateSection("Preset Themes")
-    
-    ThemeWindow:CreateButton("Dark Blue (Default)", function()
-        self:SetTheme({
-            Background = Color3.fromRGB(25, 25, 35),
-            Secondary = Color3.fromRGB(35, 35, 45),
-            Accent = Color3.fromRGB(85, 170, 255)
-        })
-    end)
-    
-    ThemeWindow:CreateButton("Purple Dream", function()
-        self:SetTheme({
-            Background = Color3.fromRGB(30, 20, 40),
-            Secondary = Color3.fromRGB(40, 30, 50),
-            Accent = Color3.fromRGB(180, 100, 255)
-        })
-    end)
-    
-    ThemeWindow:CreateButton("Green Matrix", function()
-        self:SetTheme({
-            Background = Color3.fromRGB(15, 25, 15),
-            Secondary = Color3.fromRGB(20, 35, 20),
-            Accent = Color3.fromRGB(50, 255, 100)
-        })
-    end)
-    
-    ThemeWindow:CreateButton("Red Danger", function()
-        self:SetTheme({
-            Background = Color3.fromRGB(30, 15, 15),
-            Secondary = Color3.fromRGB(40, 20, 20),
-            Accent = Color3.fromRGB(255, 70, 70)
-        })
-    end)
-    
-    return ThemeWindow
+    table.insert(self.Elements, ColorPicker)
+    return ColorPicker
 end
 
 return Library
