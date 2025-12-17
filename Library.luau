@@ -1,4 +1,4 @@
--- Roblox GUI Library v2.5 - FIXED VERSION
+-- Roblox GUI Library v3.0 - WITH TAB SYSTEM
 -- Użycie: loadstring(game:HttpGet("URL_DO_TEGO_SKRYPTU"))()
 
 local TweenService = game:GetService("TweenService")
@@ -161,11 +161,22 @@ function Library:UpdateTheme()
         end
     end
     
-    if self.Container then
-        TweenService:Create(self.Container, TweenInfo.new(0.3), {ScrollBarImageColor3 = self.Theme.Accent}):Play()
+    -- Update tabs
+    if self.Tabs then
+        for _, tab in pairs(self.Tabs) do
+            if tab.Button then
+                local isActive = tab.Container.Visible
+                TweenService:Create(tab.Button, TweenInfo.new(0.3), {
+                    BackgroundColor3 = isActive and self.Theme.Accent or self.Theme.Secondary
+                }):Play()
+            end
+            if tab.Container then
+                TweenService:Create(tab.Container, TweenInfo.new(0.3), {ScrollBarImageColor3 = self.Theme.Accent}):Play()
+            end
+        end
     end
     
-    for _, element in pairs(self.Elements) do
+    for _, element in pairs(self.Elements or {}) do
         if element and element.Parent then
             if element:IsA("Frame") or element:IsA("TextButton") then
                 TweenService:Create(element, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Secondary}):Play()
@@ -214,12 +225,14 @@ local function CreateShadow(parent)
     return Shadow
 end
 
--- Funkcja do tworzenia głównego okna
+-- Funkcja do tworzenia głównego okna z systemem zakładek
 function Library:CreateWindow(config)
     local Window = setmetatable({}, {__index = self})
     Window.Elements = {}
+    Window.Tabs = {}
     Window.Theme = self.Theme
     Window.ToggleKey = Enum.KeyCode.RightControl
+    Window.CurrentTab = nil
     
     local title = type(config) == "string" and config or config.Title or "GUI Library"
     local size = type(config) == "table" and config.Size or UDim2.new(0, 500, 0, 400)
@@ -328,26 +341,27 @@ function Library:CreateWindow(config)
         ScreenGui:Destroy()
     end)
     
-    -- Container
-    local Container = Instance.new("ScrollingFrame")
-    Container.Name = "Container"
-    Container.Size = UDim2.new(1, -24, 1, -65)
-    Container.Position = UDim2.new(0, 12, 0, 55)
-    Container.BackgroundTransparency = 1
-    Container.BorderSizePixel = 0
-    Container.ScrollBarThickness = 5
-    Container.ScrollBarImageColor3 = Window.Theme.Accent
-    Container.CanvasSize = UDim2.new(0, 0, 0, 0)
-    Container.Parent = Main
+    -- Tab Bar (Container for tab buttons)
+    local TabBar = Instance.new("Frame")
+    TabBar.Name = "TabBar"
+    TabBar.Size = UDim2.new(1, -24, 0, 35)
+    TabBar.Position = UDim2.new(0, 12, 0, 55)
+    TabBar.BackgroundTransparency = 1
+    TabBar.Parent = Main
     
-    local Layout = Instance.new("UIListLayout")
-    Layout.SortOrder = Enum.SortOrder.LayoutOrder
-    Layout.Padding = UDim.new(0, 10)
-    Layout.Parent = Container
+    local TabLayout = Instance.new("UIListLayout")
+    TabLayout.FillDirection = Enum.FillDirection.Horizontal
+    TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    TabLayout.Padding = UDim.new(0, 8)
+    TabLayout.Parent = TabBar
     
-    Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        Container.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 10)
-    end)
+    -- Tab Container Holder
+    local TabContainerHolder = Instance.new("Frame")
+    TabContainerHolder.Name = "TabContainerHolder"
+    TabContainerHolder.Size = UDim2.new(1, -24, 1, -105)
+    TabContainerHolder.Position = UDim2.new(0, 12, 0, 100)
+    TabContainerHolder.BackgroundTransparency = 1
+    TabContainerHolder.Parent = Main
     
     -- Dragging
     local dragging, dragInput, dragStart, startPos
@@ -418,9 +432,10 @@ function Library:CreateWindow(config)
         end
     end)
     
-    Window.Container = Container
     Window.Main = Main
     Window.TitleBar = TitleBar
+    Window.TabBar = TabBar
+    Window.TabContainerHolder = TabContainerHolder
     
     -- Animacja wejścia
     task.wait()
@@ -436,41 +451,110 @@ function Library:CreateWindow(config)
     return Window
 end
 
--- Tworzenie sekcji
-function Library:CreateSection(name)
-    local Section = Instance.new("Frame")
-    Section.Name = "Section"
-    Section.Size = UDim2.new(1, 0, 0, 38)
-    Section.BackgroundColor3 = self.Theme.Secondary
-    Section.BorderSizePixel = 0
-    Section.BackgroundTransparency = 1
-    Section.Parent = self.Container
+-- Tworzenie zakładki (TAB) - zastępuje CreateSection
+function Library:CreateTab(name)
+    local Tab = {}
+    Tab.Name = name
     
-    CreateShadow(Section)
+    -- Tab Button
+    local TabButton = Instance.new("TextButton")
+    TabButton.Name = "TabButton_" .. name
+    TabButton.Size = UDim2.new(0, 120, 1, 0)
+    TabButton.BackgroundColor3 = self.Theme.Secondary
+    TabButton.BorderSizePixel = 0
+    TabButton.Text = name
+    TabButton.TextColor3 = self.Theme.Text
+    TabButton.Font = Enum.Font.GothamSemibold
+    TabButton.TextSize = 14
+    TabButton.AutoButtonColor = false
+    TabButton.BackgroundTransparency = 1
+    TabButton.TextTransparency = 1
+    TabButton.Parent = self.TabBar
     
-    local SectionCorner = Instance.new("UICorner")
-    SectionCorner.CornerRadius = UDim.new(0, 8)
-    SectionCorner.Parent = Section
+    local TabCorner = Instance.new("UICorner")
+    TabCorner.CornerRadius = UDim.new(0, 8)
+    TabCorner.Parent = TabButton
     
-    local SectionLabel = Instance.new("TextLabel")
-    SectionLabel.Name = "SectionLabel"
-    SectionLabel.Size = UDim2.new(1, -20, 1, 0)
-    SectionLabel.Position = UDim2.new(0, 12, 0, 0)
-    SectionLabel.BackgroundTransparency = 1
-    SectionLabel.Text = name
-    SectionLabel.TextColor3 = self.Theme.Accent
-    SectionLabel.Font = Enum.Font.GothamBold
-    SectionLabel.TextSize = 15
-    SectionLabel.TextXAlignment = Enum.TextXAlignment.Left
-    SectionLabel.TextTransparency = 1
-    SectionLabel.Parent = Section
+    -- Tab Container (ScrollingFrame for content)
+    local TabContainer = Instance.new("ScrollingFrame")
+    TabContainer.Name = "TabContainer_" .. name
+    TabContainer.Size = UDim2.new(1, 0, 1, 0)
+    TabContainer.BackgroundTransparency = 1
+    TabContainer.BorderSizePixel = 0
+    TabContainer.ScrollBarThickness = 5
+    TabContainer.ScrollBarImageColor3 = self.Theme.Accent
+    TabContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+    TabContainer.Visible = false
+    TabContainer.Parent = self.TabContainerHolder
     
-    TweenService:Create(Section, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
-    TweenService:Create(SectionLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    local TabLayout = Instance.new("UIListLayout")
+    TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    TabLayout.Padding = UDim.new(0, 10)
+    TabLayout.Parent = TabContainer
     
-    table.insert(self.Elements, Section)
-    return Section
+    TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        TabContainer.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y + 10)
+    end)
+    
+    Tab.Button = TabButton
+    Tab.Container = TabContainer
+    
+    -- Switch to this tab when clicked
+    TabButton.MouseButton1Click:Connect(function()
+        -- Hide all tabs
+        for _, tab in pairs(self.Tabs) do
+            tab.Container.Visible = false
+            TweenService:Create(tab.Button, TweenInfo.new(0.2), {
+                BackgroundColor3 = self.Theme.Secondary
+            }):Play()
+        end
+        
+        -- Show this tab
+        TabContainer.Visible = true
+        self.CurrentTab = Tab
+        self.Container = TabContainer  -- Set active container
+        
+        TweenService:Create(TabButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = self.Theme.Accent
+        }):Play()
+    end)
+    
+    -- Hover effects
+    TabButton.MouseEnter:Connect(function()
+        if self.CurrentTab ~= Tab then
+            TweenService:Create(TabButton, TweenInfo.new(0.2), {
+                BackgroundColor3 = Color3.fromRGB(
+                    math.min(self.Theme.Secondary.R * 255 + 15, 255),
+                    math.min(self.Theme.Secondary.G * 255 + 15, 255),
+                    math.min(self.Theme.Secondary.B * 255 + 15, 255)
+                )
+            }):Play()
+        end
+    end)
+    
+    TabButton.MouseLeave:Connect(function()
+        if self.CurrentTab ~= Tab then
+            TweenService:Create(TabButton, TweenInfo.new(0.2), {
+                BackgroundColor3 = self.Theme.Secondary
+            }):Play()
+        end
+    end)
+    
+    -- Animate tab button appearance
+    TweenService:Create(TabButton, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(TabButton, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    
+    table.insert(self.Tabs, Tab)
+    
+    -- Auto-select first tab
+    if #self.Tabs == 1 then
+        TabButton.MouseButton1Click:Fire()
+    end
+    
+    return Tab
 end
+
+-- Pozostałe funkcje pozostają bez zmian, ale używają self.Container (aktualnej zakładki)
 
 -- Tworzenie buttona
 function Library:CreateButton(name, callback)
@@ -983,7 +1067,7 @@ function Library:CreateDropdown(name, options, callback)
     return Dropdown
 end
 
--- FIXED COLOR PICKER - Problem był w tej funkcji
+-- FIXED COLOR PICKER
 function Library:CreateColorPicker(name, default, callback)
     local currentColor = default or Color3.fromRGB(255, 255, 255)
     local pickerOpen = false
@@ -1040,7 +1124,6 @@ function Library:CreateColorPicker(name, default, callback)
     WheelCorner.CornerRadius = UDim.new(1, 0)
     WheelCorner.Parent = ColorWheel
     
-    -- FIX: Poprawiona funkcja createSlider - teraz przyjmuje wartość 0-1 zamiast Color3 komponentu
     local function createSlider(yPos, colorName, colorValue)
         local Slider = Instance.new("Frame")
         Slider.Size = UDim2.new(1, -24, 0, 20)
@@ -1054,7 +1137,7 @@ function Library:CreateColorPicker(name, default, callback)
         Corner.Parent = Slider
         
         local Fill = Instance.new("Frame")
-        Fill.Size = UDim2.new(colorValue, 0, 1, 0)  -- colorValue już jest 0-1
+        Fill.Size = UDim2.new(colorValue, 0, 1, 0)
         Fill.BackgroundColor3 = colorName == "R" and Color3.fromRGB(255, 0, 0) or 
                                 colorName == "G" and Color3.fromRGB(0, 255, 0) or 
                                 Color3.fromRGB(0, 0, 255)
@@ -1079,7 +1162,7 @@ function Library:CreateColorPicker(name, default, callback)
         ValueLabel.Size = UDim2.new(0, 35, 1, 0)
         ValueLabel.Position = UDim2.new(1, -40, 0, 0)
         ValueLabel.BackgroundTransparency = 1
-        ValueLabel.Text = tostring(math.floor(colorValue * 255))  -- colorValue jest już 0-1
+        ValueLabel.Text = tostring(math.floor(colorValue * 255))
         ValueLabel.TextColor3 = self.Theme.TextDark
         ValueLabel.Font = Enum.Font.Gotham
         ValueLabel.TextSize = 11
@@ -1089,7 +1172,6 @@ function Library:CreateColorPicker(name, default, callback)
         return Slider, Fill, ValueLabel
     end
     
-    -- FIX: Używamy .R, .G, .B które zwracają wartości 0-1
     local RSlider, RFill, RValue = createSlider(222, "R", currentColor.R)
     local GSlider, GFill, GValue = createSlider(247, "G", currentColor.G)
     local BSlider, BFill, BValue = createSlider(272, "B", currentColor.B)
@@ -1180,7 +1262,9 @@ end
 function Library:CreateThemeEditor()
     local ThemeWindow = self:CreateWindow({Title = "Theme Editor", Size = UDim2.new(0, 450, 0, 450)})
     
-    ThemeWindow:CreateSection("Live Color Editor")
+    local ColorsTab = ThemeWindow:CreateTab("Colors")
+    
+    ThemeWindow.Container = ColorsTab.Container
     
     ThemeWindow:CreateColorPicker("Background Color", self.Theme.Background, function(color)
         self.Theme.Background = color
@@ -1202,7 +1286,8 @@ function Library:CreateThemeEditor()
         self:UpdateTheme()
     end)
     
-    ThemeWindow:CreateSection("Preset Themes")
+    local PresetsTab = ThemeWindow:CreateTab("Presets")
+    ThemeWindow.Container = PresetsTab.Container
     
     ThemeWindow:CreateButton("Dark Blue", function()
         self:SetTheme({
