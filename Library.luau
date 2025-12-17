@@ -148,6 +148,14 @@ function Library:UpdateTheme()
         if TitleFix then
             TweenService:Create(TitleFix, tweenInfo, {BackgroundColor3 = self.Theme.Secondary}):Play()
         end
+        
+        for _, child in pairs(self.TitleBar:GetDescendants()) do
+            if child:IsA("TextLabel") and child.Name ~= "TitleLabel" then
+                TweenService:Create(child, tweenInfo, {TextColor3 = self.Theme.Text}):Play()
+            elseif child:IsA("TextLabel") and child.Name == "TitleLabel" then
+                TweenService:Create(child, tweenInfo, {TextColor3 = self.Theme.Text}):Play()
+            end
+        end
     end
     
     if self.Tabs then
@@ -157,6 +165,7 @@ function Library:UpdateTheme()
                 TweenService:Create(tab.Button, tweenInfo, {
                     BackgroundColor3 = isActive and self.Theme.Accent or self.Theme.Secondary
                 }):Play()
+                TweenService:Create(tab.Button, tweenInfo, {TextColor3 = self.Theme.Text}):Play()
             end
             if tab.Container then
                 tab.Container.ScrollBarImageColor3 = self.Theme.Accent
@@ -168,36 +177,64 @@ function Library:UpdateTheme()
         if element and element.Parent then
             if element:IsA("Frame") then
                 TweenService:Create(element, tweenInfo, {BackgroundColor3 = self.Theme.Secondary}):Play()
+            elseif element:IsA("TextButton") then
+                TweenService:Create(element, tweenInfo, {BackgroundColor3 = self.Theme.Secondary}):Play()
+                TweenService:Create(element, tweenInfo, {TextColor3 = self.Theme.Text}):Play()
             end
             
             for _, child in pairs(element:GetDescendants()) do
                 if child:IsA("TextLabel") then
-                    if child.Name == "SectionLabel" or child.Name == "ConfigLabel" then
+                    if child.Name == "ConfigLabel" then
                         TweenService:Create(child, tweenInfo, {TextColor3 = self.Theme.Accent}):Play()
                     elseif child.Name == "ValueLabel" or child.Name == "SelectedLabel" then
                         TweenService:Create(child, tweenInfo, {TextColor3 = self.Theme.Accent}):Play()
-                    elseif child.Name ~= "Arrow" and child.Name ~= "ToggleButton" then
+                    elseif child.Name == "Arrow" then
+                        TweenService:Create(child, tweenInfo, {TextColor3 = self.Theme.TextDark}):Play()
+                    else
                         TweenService:Create(child, tweenInfo, {TextColor3 = self.Theme.Text}):Play()
                     end
                 end
                 
-                if child.Name == "SliderFill" then
-                    TweenService:Create(child, tweenInfo, {BackgroundColor3 = self.Theme.Accent}):Play()
-                elseif child.Name == "ToggleButton" then
-                    local toggle = child.Parent
-                    if toggle and toggle:IsA("Frame") then
-                        local configKey = "Toggle_" .. (toggle:FindFirstChild("ToggleLabel") and toggle:FindFirstChild("ToggleLabel").Text or "")
-                        local isOn = self.ConfigData[configKey] and self.ConfigData[configKey].Value or false
-                        TweenService:Create(child, tweenInfo, {
-                            BackgroundColor3 = isOn and self.Theme.Accent or Color3.fromRGB(50, 50, 60)
-                        }):Play()
+                if child:IsA("TextButton") then
+                    if child.Name == "ToggleButton" then
+                        local toggle = child.Parent
+                        if toggle and toggle:IsA("Frame") then
+                            local toggleLabel = toggle:FindFirstChild("ToggleLabel")
+                            local configKey = "Toggle_" .. (toggleLabel and toggleLabel.Text or "")
+                            local isOn = self.ConfigData[configKey] and self.ConfigData[configKey].Value or false
+                            TweenService:Create(child, tweenInfo, {
+                                BackgroundColor3 = isOn and self.Theme.Accent or Color3.fromRGB(50, 50, 60)
+                            }):Play()
+                        end
+                    elseif child.Name == "KeybindDisplay" then
+                        TweenService:Create(child, tweenInfo, {BackgroundColor3 = self.Theme.Accent}):Play()
+                        TweenService:Create(child, tweenInfo, {TextColor3 = self.Theme.Text}):Play()
+                    elseif child.Parent and child.Parent.Name == "OptionsList" then
+                        TweenService:Create(child, tweenInfo, {TextColor3 = self.Theme.Text}):Play()
                     end
-                elseif child.Name == "KeybindDisplay" then
-                    TweenService:Create(child, tweenInfo, {BackgroundColor3 = self.Theme.Accent}):Play()
                 end
                 
-                if child:IsA("Frame") and (child.Parent and child.Parent.Name == "ConfigSection") then
-                    TweenService:Create(child, tweenInfo, {BackgroundColor3 = self.Theme.Secondary}):Play()
+                if child:IsA("Frame") then
+                    if child.Name == "SliderFill" then
+                        TweenService:Create(child, tweenInfo, {BackgroundColor3 = self.Theme.Accent}):Play()
+                    elseif child.Name == "SliderBar" then
+                        TweenService:Create(child, tweenInfo, {BackgroundColor3 = Color3.fromRGB(50, 50, 60)}):Play()
+                    elseif child.Name == "AccentBar" then
+                        TweenService:Create(child, tweenInfo, {BackgroundColor3 = self.Theme.Accent}):Play()
+                    elseif child.Parent and (child.Parent.Name == "ConfigDropdown" or child.Parent.Parent and child.Parent.Parent.Name == "ConfigSection") then
+                        if child.Name ~= "ToggleCircle" and child.Name ~= "ToggleButton" then
+                            TweenService:Create(child, tweenInfo, {BackgroundColor3 = Color3.fromRGB(50, 50, 60)}):Play()
+                        end
+                    end
+                end
+                
+                if child:IsA("TextBox") then
+                    TweenService:Create(child, tweenInfo, {TextColor3 = self.Theme.Text}):Play()
+                    TweenService:Create(child, tweenInfo, {PlaceholderColor3 = self.Theme.TextDark}):Play()
+                end
+                
+                if child:IsA("ScrollingFrame") then
+                    child.ScrollBarImageColor3 = self.Theme.Accent
                 end
             end
         end
@@ -211,6 +248,8 @@ function Library:UpdateTheme()
                 for _, child in pairs(notif:GetDescendants()) do
                     if child.Name == "AccentBar" then
                         TweenService:Create(child, tweenInfo, {BackgroundColor3 = self.Theme.Accent}):Play()
+                    elseif child:IsA("TextLabel") then
+                        TweenService:Create(child, tweenInfo, {TextColor3 = self.Theme.Text}):Play()
                     end
                 end
             end
@@ -1708,6 +1747,7 @@ function Library:CreateThemeEditor()
     local mainWindow = self
     local ThemeWindow = Library:CreateWindow({Title = "Theme Editor", Size = UDim2.new(0, 450, 0, 450)})
     
+    ThemeWindow.Theme = mainWindow.Theme
     ThemeWindow.MainWindowReference = mainWindow
     
     local ColorsTab = ThemeWindow:CreateTab("Colors")
@@ -1716,24 +1756,28 @@ function Library:CreateThemeEditor()
     
     ThemeWindow:CreateColorPicker("Background Color", mainWindow.Theme.Background, function(color)
         mainWindow.Theme.Background = color
+        ThemeWindow.Theme.Background = color
         mainWindow:UpdateTheme()
         ThemeWindow:UpdateTheme()
     end)
     
     ThemeWindow:CreateColorPicker("Secondary Color", mainWindow.Theme.Secondary, function(color)
         mainWindow.Theme.Secondary = color
+        ThemeWindow.Theme.Secondary = color
         mainWindow:UpdateTheme()
         ThemeWindow:UpdateTheme()
     end)
     
     ThemeWindow:CreateColorPicker("Accent Color", mainWindow.Theme.Accent, function(color)
         mainWindow.Theme.Accent = color
+        ThemeWindow.Theme.Accent = color
         mainWindow:UpdateTheme()
         ThemeWindow:UpdateTheme()
     end)
     
     ThemeWindow:CreateColorPicker("Text Color", mainWindow.Theme.Text, function(color)
         mainWindow.Theme.Text = color
+        ThemeWindow.Theme.Text = color
         mainWindow:UpdateTheme()
         ThemeWindow:UpdateTheme()
     end)
@@ -1747,6 +1791,7 @@ function Library:CreateThemeEditor()
             Secondary = Color3.fromRGB(35, 35, 45),
             Accent = Color3.fromRGB(85, 170, 255)
         })
+        ThemeWindow.Theme = mainWindow.Theme
         ThemeWindow:UpdateTheme()
     end)
     
@@ -1756,6 +1801,7 @@ function Library:CreateThemeEditor()
             Secondary = Color3.fromRGB(40, 30, 50),
             Accent = Color3.fromRGB(180, 100, 255)
         })
+        ThemeWindow.Theme = mainWindow.Theme
         ThemeWindow:UpdateTheme()
     end)
     
@@ -1765,6 +1811,7 @@ function Library:CreateThemeEditor()
             Secondary = Color3.fromRGB(20, 35, 20),
             Accent = Color3.fromRGB(50, 255, 100)
         })
+        ThemeWindow.Theme = mainWindow.Theme
         ThemeWindow:UpdateTheme()
     end)
     
@@ -1774,6 +1821,7 @@ function Library:CreateThemeEditor()
             Secondary = Color3.fromRGB(40, 20, 20),
             Accent = Color3.fromRGB(255, 70, 70)
         })
+        ThemeWindow.Theme = mainWindow.Theme
         ThemeWindow:UpdateTheme()
     end)
     
@@ -1783,6 +1831,7 @@ function Library:CreateThemeEditor()
             Secondary = Color3.fromRGB(20, 35, 40),
             Accent = Color3.fromRGB(0, 255, 255)
         })
+        ThemeWindow.Theme = mainWindow.Theme
         ThemeWindow:UpdateTheme()
     end)
     
@@ -1792,6 +1841,7 @@ function Library:CreateThemeEditor()
             Secondary = Color3.fromRGB(40, 30, 20),
             Accent = Color3.fromRGB(255, 150, 50)
         })
+        ThemeWindow.Theme = mainWindow.Theme
         ThemeWindow:UpdateTheme()
     end)
     
