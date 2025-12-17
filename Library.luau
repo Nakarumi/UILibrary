@@ -1,13 +1,9 @@
--- Roblox GUI Library v3.0 - POPRAWIONA WERSJA
--- Naprawione: 1) Zakładki wychodzące poza ekran 2) Minimalizacja 3) Błąd Fire
-
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Library = {}
 Library.__index = Library
 
--- Domyślne kolory
 Library.Theme = {
     Background = Color3.fromRGB(25, 25, 35),
     Secondary = Color3.fromRGB(35, 35, 45),
@@ -17,7 +13,6 @@ Library.Theme = {
     Shadow = Color3.fromRGB(0, 0, 0)
 }
 
--- Notification System
 Library.Notifications = {}
 
 function Library:Notify(config)
@@ -224,13 +219,21 @@ function Library:CreateWindow(config)
     Window.Theme = self.Theme
     Window.ToggleKey = Enum.KeyCode.RightControl
     Window.CurrentTab = nil
-    Window.IsVisible = true  -- NOWA ZMIENNA DO ŚLEDZENIA STANU
+    Window.IsVisible = true
+    Window.ConfigData = {}
+    Window.ConfigFolder = "LibraryConfigs"
     
     local title = type(config) == "string" and config or config.Title or "GUI Library"
     local size = type(config) == "table" and config.Size or UDim2.new(0, 500, 0, 400)
     local toggleKey = type(config) == "table" and config.ToggleKey or Enum.KeyCode.RightControl
+    local configFolder = type(config) == "table" and config.ConfigFolder or "LibraryConfigs"
     
     Window.ToggleKey = toggleKey
+    Window.ConfigFolder = configFolder
+    
+    if not isfolder(configFolder) then
+        makefolder(configFolder)
+    end
     
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "LibraryGUI"
@@ -246,7 +249,7 @@ function Library:CreateWindow(config)
     Main.BackgroundColor3 = Window.Theme.Background
     Main.BorderSizePixel = 0
     Main.BackgroundTransparency = 1
-    Main.ClipsDescendants = true  -- WAŻNE: Zapobiega wychodzeniu elementów poza okno
+    Main.ClipsDescendants = true
     Main.Parent = ScreenGui
     
     CreateShadow(Main)
@@ -330,7 +333,6 @@ function Library:CreateWindow(config)
         ScreenGui:Destroy()
     end)
     
-    -- POPRAWIONY Tab Bar - z ScrollingFrame
     local TabBar = Instance.new("ScrollingFrame")
     TabBar.Name = "TabBar"
     TabBar.Size = UDim2.new(1, -24, 0, 35)
@@ -348,7 +350,6 @@ function Library:CreateWindow(config)
     TabLayout.Padding = UDim.new(0, 8)
     TabLayout.Parent = TabBar
     
-    -- Auto-update TabBar canvas size
     TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         TabBar.CanvasSize = UDim2.new(0, TabLayout.AbsoluteContentSize.X + 10, 0, 0)
     end)
@@ -361,7 +362,6 @@ function Library:CreateWindow(config)
     TabContainerHolder.ClipsDescendants = true
     TabContainerHolder.Parent = Main
     
-    -- Dragging
     local dragging, dragInput, dragStart, startPos
     
     TitleBar.InputBegan:Connect(function(input)
@@ -393,13 +393,11 @@ function Library:CreateWindow(config)
         end
     end)
     
-    -- POPRAWIONY Toggle GUI
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if not gameProcessed and input.KeyCode == Window.ToggleKey then
             Window.IsVisible = not Window.IsVisible
             
             if not Window.IsVisible then
-                -- Ukrywanie
                 TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
                     Size = UDim2.new(0, 0, 0, 0),
                     BackgroundTransparency = 1
@@ -414,13 +412,12 @@ function Library:CreateWindow(config)
                     end
                 end
             else
-                -- Pokazywanie
                 TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
                     Size = size,
                     BackgroundTransparency = 0
                 }):Play()
                 
-                task.wait(0.2)  -- Czekamy aż okno się pojawi
+                task.wait(0.2)
                 
                 for _, element in pairs(Main:GetDescendants()) do
                     if element:IsA("TextLabel") or element:IsA("TextButton") or element:IsA("TextBox") then
@@ -450,6 +447,337 @@ function Library:CreateWindow(config)
     }):Play()
     
     return Window
+end
+
+function Library:SaveConfig(name)
+    local configPath = self.ConfigFolder .. "/" .. name .. ".json"
+    local configData = {}
+    
+    for key, data in pairs(self.ConfigData) do
+        configData[key] = data.Value
+    end
+    
+    local success, err = pcall(function()
+        writefile(configPath, game:GetService("HttpService"):JSONEncode(configData))
+    end)
+    
+    if success then
+        self:Notify({Title = "Config Saved", Description = "Configuration saved to " .. name, Duration = 2})
+    else
+        self:Notify({Title = "Save Error", Description = "Failed to save config: " .. tostring(err), Duration = 3})
+    end
+end
+
+function Library:LoadConfig(name)
+    local configPath = self.ConfigFolder .. "/" .. name .. ".json"
+    
+    if not isfile(configPath) then
+        self:Notify({Title = "Load Error", Description = "Config file not found", Duration = 2})
+        return
+    end
+    
+    local success, result = pcall(function()
+        return game:GetService("HttpService"):JSONDecode(readfile(configPath))
+    end)
+    
+    if not success then
+        self:Notify({Title = "Load Error", Description = "Failed to decode config", Duration = 3})
+        return
+    end
+    
+    for key, value in pairs(result) do
+        if self.ConfigData[key] then
+            self.ConfigData[key].Callback(value)
+            self.ConfigData[key].Value = value
+        end
+    end
+    
+    self:Notify({Title = "Config Loaded", Description = "Configuration loaded from " .. name, Duration = 2})
+end
+
+function Library:DeleteConfig(name)
+    local configPath = self.ConfigFolder .. "/" .. name .. ".json"
+    
+    if not isfile(configPath) then
+        self:Notify({Title = "Delete Error", Description = "Config file not found", Duration = 2})
+        return
+    end
+    
+    local success, err = pcall(function()
+        delfile(configPath)
+    end)
+    
+    if success then
+        self:Notify({Title = "Config Deleted", Description = "Configuration " .. name .. " deleted", Duration = 2})
+    else
+        self:Notify({Title = "Delete Error", Description = "Failed to delete config", Duration = 3})
+    end
+end
+
+function Library:GetConfigs()
+    local configs = {}
+    
+    if not isfolder(self.ConfigFolder) then
+        makefolder(self.ConfigFolder)
+        return configs
+    end
+    
+    for _, file in pairs(listfiles(self.ConfigFolder)) do
+        local name = file:match("([^/\\]+)%.json$")
+        if name then
+            table.insert(configs, name)
+        end
+    end
+    
+    return configs
+end
+
+function Library:CreateConfiguration()
+    local ConfigSection = Instance.new("Frame")
+    ConfigSection.Name = "ConfigSection"
+    ConfigSection.Size = UDim2.new(1, 0, 0, 230)
+    ConfigSection.BackgroundColor3 = self.Theme.Secondary
+    ConfigSection.BorderSizePixel = 0
+    ConfigSection.BackgroundTransparency = 1
+    ConfigSection.Parent = self.Container
+    
+    CreateShadow(ConfigSection)
+    
+    local ConfigCorner = Instance.new("UICorner")
+    ConfigCorner.CornerRadius = UDim.new(0, 8)
+    ConfigCorner.Parent = ConfigSection
+    
+    local ConfigLabel = Instance.new("TextLabel")
+    ConfigLabel.Size = UDim2.new(1, -20, 0, 30)
+    ConfigLabel.Position = UDim2.new(0, 10, 0, 8)
+    ConfigLabel.BackgroundTransparency = 1
+    ConfigLabel.Text = "Configuration Manager"
+    ConfigLabel.TextColor3 = self.Theme.Accent
+    ConfigLabel.Font = Enum.Font.GothamBold
+    ConfigLabel.TextSize = 16
+    ConfigLabel.TextXAlignment = Enum.TextXAlignment.Left
+    ConfigLabel.TextTransparency = 1
+    ConfigLabel.Parent = ConfigSection
+    
+    local ConfigName = Instance.new("TextBox")
+    ConfigName.Size = UDim2.new(1, -20, 0, 35)
+    ConfigName.Position = UDim2.new(0, 10, 0, 45)
+    ConfigName.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    ConfigName.BorderSizePixel = 0
+    ConfigName.Text = ""
+    ConfigName.PlaceholderText = "Enter config name..."
+    ConfigName.TextColor3 = self.Theme.Text
+    ConfigName.PlaceholderColor3 = self.Theme.TextDark
+    ConfigName.Font = Enum.Font.Gotham
+    ConfigName.TextSize = 13
+    ConfigName.Parent = ConfigSection
+    
+    local NameCorner = Instance.new("UICorner")
+    NameCorner.CornerRadius = UDim.new(0, 6)
+    NameCorner.Parent = ConfigName
+    
+    local ConfigDropdown = Instance.new("Frame")
+    ConfigDropdown.Size = UDim2.new(1, -20, 0, 35)
+    ConfigDropdown.Position = UDim2.new(0, 10, 0, 88)
+    ConfigDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    ConfigDropdown.BorderSizePixel = 0
+    ConfigDropdown.ClipsDescendants = true
+    ConfigDropdown.Parent = ConfigSection
+    
+    local DropCorner = Instance.new("UICorner")
+    DropCorner.CornerRadius = UDim.new(0, 6)
+    DropCorner.Parent = ConfigDropdown
+    
+    local SelectedConfig = Instance.new("TextLabel")
+    SelectedConfig.Size = UDim2.new(1, -35, 1, 0)
+    SelectedConfig.Position = UDim2.new(0, 10, 0, 0)
+    SelectedConfig.BackgroundTransparency = 1
+    SelectedConfig.Text = "Select config..."
+    SelectedConfig.TextColor3 = self.Theme.TextDark
+    SelectedConfig.Font = Enum.Font.Gotham
+    SelectedConfig.TextSize = 13
+    SelectedConfig.TextXAlignment = Enum.TextXAlignment.Left
+    SelectedConfig.Parent = ConfigDropdown
+    
+    local DropArrow = Instance.new("TextButton")
+    DropArrow.Size = UDim2.new(0, 25, 1, 0)
+    DropArrow.Position = UDim2.new(1, -25, 0, 0)
+    DropArrow.BackgroundTransparency = 1
+    DropArrow.Text = "▼"
+    DropArrow.TextColor3 = self.Theme.TextDark
+    DropArrow.Font = Enum.Font.Gotham
+    DropArrow.TextSize = 10
+    DropArrow.Parent = ConfigDropdown
+    
+    local ConfigList = Instance.new("ScrollingFrame")
+    ConfigList.Size = UDim2.new(1, 0, 0, 0)
+    ConfigList.Position = UDim2.new(0, 0, 1, 3)
+    ConfigList.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+    ConfigList.BorderSizePixel = 0
+    ConfigList.ScrollBarThickness = 4
+    ConfigList.Visible = false
+    ConfigList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    ConfigList.Parent = ConfigDropdown
+    
+    local ListCorner = Instance.new("UICorner")
+    ListCorner.CornerRadius = UDim.new(0, 6)
+    ListCorner.Parent = ConfigList
+    
+    local ListLayout = Instance.new("UIListLayout")
+    ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ListLayout.Padding = UDim.new(0, 2)
+    ListLayout.Parent = ConfigList
+    
+    local function updateConfigList()
+        for _, child in pairs(ConfigList:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+        
+        local configs = self:GetConfigs()
+        local listHeight = #configs * 32
+        
+        ConfigList.CanvasSize = UDim2.new(0, 0, 0, listHeight)
+        
+        for _, configName in pairs(configs) do
+            local ConfigButton = Instance.new("TextButton")
+            ConfigButton.Size = UDim2.new(1, -8, 0, 30)
+            ConfigButton.BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+            ConfigButton.BorderSizePixel = 0
+            ConfigButton.Text = configName
+            ConfigButton.TextColor3 = self.Theme.Text
+            ConfigButton.Font = Enum.Font.Gotham
+            ConfigButton.TextSize = 12
+            ConfigButton.AutoButtonColor = false
+            ConfigButton.Parent = ConfigList
+            
+            local BtnCorner = Instance.new("UICorner")
+            BtnCorner.CornerRadius = UDim.new(0, 4)
+            BtnCorner.Parent = ConfigButton
+            
+            ConfigButton.MouseButton1Click:Connect(function()
+                SelectedConfig.Text = configName
+                SelectedConfig.TextColor3 = self.Theme.Text
+                ConfigList.Visible = false
+                TweenService:Create(ConfigDropdown, TweenInfo.new(0.2), {Size = UDim2.new(1, -20, 0, 35)}):Play()
+                TweenService:Create(DropArrow, TweenInfo.new(0.2), {Rotation = 0}):Play()
+            end)
+            
+            ConfigButton.MouseEnter:Connect(function()
+                TweenService:Create(ConfigButton, TweenInfo.new(0.15), {BackgroundColor3 = self.Theme.Accent}):Play()
+            end)
+            
+            ConfigButton.MouseLeave:Connect(function()
+                TweenService:Create(ConfigButton, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(55, 55, 65)}):Play()
+            end)
+        end
+    end
+    
+    DropArrow.MouseButton1Click:Connect(function()
+        ConfigList.Visible = not ConfigList.Visible
+        updateConfigList()
+        
+        local listHeight = math.min(#self:GetConfigs() * 32, 120)
+        
+        TweenService:Create(ConfigDropdown, TweenInfo.new(0.2), {
+            Size = ConfigList.Visible and UDim2.new(1, -20, 0, 35 + listHeight + 3) or UDim2.new(1, -20, 0, 35)
+        }):Play()
+        
+        TweenService:Create(ConfigList, TweenInfo.new(0.2), {
+            Size = ConfigList.Visible and UDim2.new(1, 0, 0, listHeight) or UDim2.new(1, 0, 0, 0)
+        }):Play()
+        
+        TweenService:Create(DropArrow, TweenInfo.new(0.2), {
+            Rotation = ConfigList.Visible and 180 or 0
+        }):Play()
+    end)
+    
+    local ButtonContainer = Instance.new("Frame")
+    ButtonContainer.Size = UDim2.new(1, -20, 0, 70)
+    ButtonContainer.Position = UDim2.new(0, 10, 0, 150)
+    ButtonContainer.BackgroundTransparency = 1
+    ButtonContainer.Parent = ConfigSection
+    
+    local function createConfigButton(text, position, color, callback)
+        local Button = Instance.new("TextButton")
+        Button.Size = UDim2.new(0.48, 0, 0, 30)
+        Button.Position = position
+        Button.BackgroundColor3 = color
+        Button.BorderSizePixel = 0
+        Button.Text = text
+        Button.TextColor3 = self.Theme.Text
+        Button.Font = Enum.Font.GothamSemibold
+        Button.TextSize = 13
+        Button.AutoButtonColor = false
+        Button.Parent = ButtonContainer
+        
+        local BtnCorner = Instance.new("UICorner")
+        BtnCorner.CornerRadius = UDim.new(0, 6)
+        BtnCorner.Parent = Button
+        
+        Button.MouseButton1Click:Connect(callback)
+        
+        Button.MouseEnter:Connect(function()
+            TweenService:Create(Button, TweenInfo.new(0.15), {
+                BackgroundColor3 = Color3.fromRGB(
+                    math.min(color.R * 255 + 20, 255),
+                    math.min(color.G * 255 + 20, 255),
+                    math.min(color.B * 255 + 20, 255)
+                )
+            }):Play()
+        end)
+        
+        Button.MouseLeave:Connect(function()
+            TweenService:Create(Button, TweenInfo.new(0.15), {BackgroundColor3 = color}):Play()
+        end)
+        
+        return Button
+    end
+    
+    createConfigButton("Save", UDim2.new(0, 0, 0, 0), Color3.fromRGB(70, 180, 80), function()
+        local name = ConfigName.Text
+        if name ~= "" then
+            self:SaveConfig(name)
+            updateConfigList()
+        else
+            self:Notify({Title = "Error", Description = "Enter a config name", Duration = 2})
+        end
+    end)
+    
+    createConfigButton("Load", UDim2.new(0.52, 0, 0, 0), Color3.fromRGB(85, 170, 255), function()
+        if SelectedConfig.Text ~= "Select config..." then
+            self:LoadConfig(SelectedConfig.Text)
+        else
+            self:Notify({Title = "Error", Description = "Select a config first", Duration = 2})
+        end
+    end)
+    
+    createConfigButton("Overwrite", UDim2.new(0, 0, 0, 38), Color3.fromRGB(255, 165, 50), function()
+        if SelectedConfig.Text ~= "Select config..." then
+            self:SaveConfig(SelectedConfig.Text)
+            self:Notify({Title = "Config Overwritten", Description = SelectedConfig.Text .. " has been updated", Duration = 2})
+        else
+            self:Notify({Title = "Error", Description = "Select a config first", Duration = 2})
+        end
+    end)
+    
+    createConfigButton("Delete", UDim2.new(0.52, 0, 0, 38), Color3.fromRGB(255, 70, 70), function()
+        if SelectedConfig.Text ~= "Select config..." then
+            self:DeleteConfig(SelectedConfig.Text)
+            SelectedConfig.Text = "Select config..."
+            SelectedConfig.TextColor3 = self.Theme.TextDark
+            updateConfigList()
+        else
+            self:Notify({Title = "Error", Description = "Select a config first", Duration = 2})
+        end
+    end)
+    
+    TweenService:Create(ConfigSection, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+    TweenService:Create(ConfigLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    
+    table.insert(self.Elements, ConfigSection)
+    return ConfigSection
 end
 
 function Library:CreateTab(name)
@@ -581,7 +909,7 @@ function Library:CreateButton(name, callback)
         TweenService:Create(Button, TweenInfo.new(0.2), {BackgroundColor3 = self.Theme.Secondary}):Play()
         
         if callback then 
-            pcall(callback)  -- POPRAWKA: Chroni przed błędami w callback
+            pcall(callback)
         end
     end)
     
@@ -605,6 +933,7 @@ end
 
 function Library:CreateToggle(name, default, callback)
     local toggled = default or false
+    local configKey = "Toggle_" .. name
     
     local Toggle = Instance.new("Frame")
     Toggle.Name = "Toggle"
@@ -660,8 +989,22 @@ function Library:CreateToggle(name, default, callback)
     TweenService:Create(Toggle, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(ToggleLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     
+    self.ConfigData[configKey] = {
+        Value = toggled,
+        Callback = function(value)
+            toggled = value
+            TweenService:Create(ToggleButton, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
+                BackgroundColor3 = toggled and self.Theme.Accent or Color3.fromRGB(50, 50, 60)
+            }):Play()
+            TweenService:Create(ToggleCircle, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
+                Position = toggled and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9)
+            }):Play()
+        end
+    }
+    
     ToggleButton.MouseButton1Click:Connect(function()
         toggled = not toggled
+        self.ConfigData[configKey].Value = toggled
         
         TweenService:Create(ToggleButton, TweenInfo.new(0.25, Enum.EasingStyle.Quad), {
             BackgroundColor3 = toggled and self.Theme.Accent or Color3.fromRGB(50, 50, 60)
@@ -680,11 +1023,10 @@ function Library:CreateToggle(name, default, callback)
     return Toggle
 end
 
-
--- Tworzenie keybindu
 function Library:CreateKeybind(name, default, callback)
     local currentKey = default or Enum.KeyCode.E
     local binding = false
+    local configKey = "Keybind_" .. name
     
     local Keybind = Instance.new("Frame")
     Keybind.Name = "Keybind"
@@ -732,6 +1074,14 @@ function Library:CreateKeybind(name, default, callback)
     TweenService:Create(Keybind, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(KeybindLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     
+    self.ConfigData[configKey] = {
+        Value = currentKey.Name,
+        Callback = function(value)
+            currentKey = Enum.KeyCode[value]
+            KeybindDisplay.Text = currentKey.Name
+        end
+    }
+    
     KeybindDisplay.MouseButton1Click:Connect(function()
         binding = true
         KeybindDisplay.Text = "..."
@@ -746,6 +1096,7 @@ function Library:CreateKeybind(name, default, callback)
             binding = false
             currentKey = input.KeyCode
             KeybindDisplay.Text = currentKey.Name
+            self.ConfigData[configKey].Value = currentKey.Name
             
             TweenService:Create(KeybindDisplay, TweenInfo.new(0.2), {
                 BackgroundColor3 = self.Theme.Accent
@@ -763,9 +1114,9 @@ function Library:CreateKeybind(name, default, callback)
     return Keybind
 end
 
--- Tworzenie slidera
 function Library:CreateSlider(name, min, max, default, callback)
     local value = default or min
+    local configKey = "Slider_" .. name
     
     local Slider = Instance.new("Frame")
     Slider.Name = "Slider"
@@ -832,6 +1183,18 @@ function Library:CreateSlider(name, min, max, default, callback)
     TweenService:Create(SliderLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     TweenService:Create(ValueLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     
+    self.ConfigData[configKey] = {
+        Value = value,
+        Callback = function(newValue)
+            value = newValue
+            local percent = (value - min) / (max - min)
+            TweenService:Create(SliderFill, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {
+                Size = UDim2.new(percent, 0, 1, 0)
+            }):Play()
+            ValueLabel.Text = tostring(value)
+        end
+    }
+    
     local dragging = false
     
     SliderBar.InputBegan:Connect(function(input)
@@ -851,6 +1214,7 @@ function Library:CreateSlider(name, min, max, default, callback)
             local mouse = game.Players.LocalPlayer:GetMouse()
             local percent = math.clamp((mouse.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
             value = math.floor(min + (max - min) * percent)
+            self.ConfigData[configKey].Value = value
             
             TweenService:Create(SliderFill, TweenInfo.new(0.1, Enum.EasingStyle.Quad), {
                 Size = UDim2.new(percent, 0, 1, 0)
@@ -865,7 +1229,6 @@ function Library:CreateSlider(name, min, max, default, callback)
     return Slider
 end
 
--- Tworzenie textboxa
 function Library:CreateTextbox(name, placeholder, callback)
     local Textbox = Instance.new("Frame")
     Textbox.Name = "Textbox"
@@ -930,10 +1293,10 @@ function Library:CreateTextbox(name, placeholder, callback)
     return Textbox
 end
 
--- Tworzenie dropdownu
 function Library:CreateDropdown(name, options, callback)
     local selected = options[1] or "None"
     local opened = false
+    local configKey = "Dropdown_" .. name
     
     local Dropdown = Instance.new("Frame")
     Dropdown.Name = "Dropdown"
@@ -1004,6 +1367,14 @@ function Library:CreateDropdown(name, options, callback)
     ListLayout.Padding = UDim.new(0, 3)
     ListLayout.Parent = OptionsList
     
+    self.ConfigData[configKey] = {
+        Value = selected,
+        Callback = function(value)
+            selected = value
+            SelectedLabel.Text = selected
+        end
+    }
+    
     for i, option in ipairs(options) do
         local OptionButton = Instance.new("TextButton")
         OptionButton.Size = UDim2.new(1, -12, 0, 33)
@@ -1024,6 +1395,7 @@ function Library:CreateDropdown(name, options, callback)
         OptionButton.MouseButton1Click:Connect(function()
             selected = option
             SelectedLabel.Text = selected
+            self.ConfigData[configKey].Value = selected
             opened = false
             
             TweenService:Create(Dropdown, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
@@ -1065,10 +1437,10 @@ function Library:CreateDropdown(name, options, callback)
     return Dropdown
 end
 
--- FIXED COLOR PICKER
 function Library:CreateColorPicker(name, default, callback)
     local currentColor = default or Color3.fromRGB(255, 255, 255)
     local pickerOpen = false
+    local configKey = "ColorPicker_" .. name
     
     local ColorPicker = Instance.new("Frame")
     ColorPicker.Name = "ColorPicker"
@@ -1177,6 +1549,20 @@ function Library:CreateColorPicker(name, default, callback)
     TweenService:Create(ColorPicker, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(PickerLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
     
+    self.ConfigData[configKey] = {
+        Value = {R = currentColor.R * 255, G = currentColor.G * 255, B = currentColor.B * 255},
+        Callback = function(value)
+            currentColor = Color3.fromRGB(value.R, value.G, value.B)
+            ColorDisplay.BackgroundColor3 = currentColor
+            RFill.Size = UDim2.new(value.R / 255, 0, 1, 0)
+            GFill.Size = UDim2.new(value.G / 255, 0, 1, 0)
+            BFill.Size = UDim2.new(value.B / 255, 0, 1, 0)
+            RValue.Text = tostring(math.floor(value.R))
+            GValue.Text = tostring(math.floor(value.G))
+            BValue.Text = tostring(math.floor(value.B))
+        end
+    }
+    
     local function updateColor()
         local r = RFill.Size.X.Scale
         local g = GFill.Size.X.Scale
@@ -1187,6 +1573,8 @@ function Library:CreateColorPicker(name, default, callback)
         RValue.Text = tostring(math.floor(r * 255))
         GValue.Text = tostring(math.floor(g * 255))
         BValue.Text = tostring(math.floor(b * 255))
+        
+        self.ConfigData[configKey].Value = {R = r * 255, G = g * 255, B = b * 255}
         
         if callback then callback(currentColor) end
     end
@@ -1339,4 +1727,3 @@ function Library:CreateThemeEditor()
 end
 
 return Library
-
