@@ -1,10 +1,6 @@
--- Roblox GUI Library
--- Użycie: loadstring(game:HttpGet("URL_DO_TEGO_SKRYPTU"))()
-
 local Library = {}
 Library.__index = Library
 
--- Kolory i style
 local Colors = {
     Background = Color3.fromRGB(25, 25, 35),
     Secondary = Color3.fromRGB(35, 35, 45),
@@ -13,7 +9,6 @@ local Colors = {
     TextDark = Color3.fromRGB(180, 180, 180)
 }
 
--- Funkcja do tworzenia głównego okna
 function Library:CreateWindow(title)
     local Window = {}
     
@@ -119,7 +114,6 @@ function Library:CreateWindow(title)
     return setmetatable(Window, {__index = self})
 end
 
--- Tworzenie sekcji
 function Library:CreateSection(name)
     local Section = Instance.new("Frame")
     Section.Name = "Section"
@@ -146,7 +140,6 @@ function Library:CreateSection(name)
     return Section
 end
 
--- Tworzenie buttona
 function Library:CreateButton(name, callback)
     local Button = Instance.new("TextButton")
     Button.Name = "Button"
@@ -179,7 +172,6 @@ function Library:CreateButton(name, callback)
     return Button
 end
 
--- Tworzenie toggle
 function Library:CreateToggle(name, default, callback)
     local toggled = default or false
     
@@ -246,7 +238,6 @@ function Library:CreateToggle(name, default, callback)
     return Toggle
 end
 
--- Tworzenie slidera
 function Library:CreateSlider(name, min, max, default, callback)
     local value = default or min
     
@@ -334,7 +325,6 @@ function Library:CreateSlider(name, min, max, default, callback)
     return Slider
 end
 
--- Tworzenie textboxa
 function Library:CreateTextbox(name, placeholder, callback)
     local Textbox = Instance.new("Frame")
     Textbox.Name = "Textbox"
@@ -384,7 +374,6 @@ function Library:CreateTextbox(name, placeholder, callback)
     return Textbox
 end
 
--- Tworzenie dropdownu
 function Library:CreateDropdown(name, options, callback)
     local selected = options[1] or "None"
     local opened = false
@@ -485,5 +474,6 @@ function Library:CreateDropdown(name, options, callback)
     
     return Dropdown
 end
+
 
 return Library
