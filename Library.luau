@@ -132,21 +132,19 @@ function Library:SetTheme(theme)
         end
     end
     
-    if self.Elements then
-        self:UpdateTheme()
-    end
+    self:UpdateTheme()
 end
 
 function Library:UpdateTheme()
     if self.Main then
-        TweenService:Create(self.Main, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Background}):Play()
+        self.Main.BackgroundColor3 = self.Theme.Background
     end
     
     if self.TitleBar then
-        TweenService:Create(self.TitleBar, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Secondary}):Play()
+        self.TitleBar.BackgroundColor3 = self.Theme.Secondary
         local TitleFix = self.TitleBar:FindFirstChild("TitleFix")
         if TitleFix then
-            TweenService:Create(TitleFix, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Secondary}):Play()
+            TitleFix.BackgroundColor3 = self.Theme.Secondary
         end
     end
     
@@ -154,12 +152,10 @@ function Library:UpdateTheme()
         for _, tab in pairs(self.Tabs) do
             if tab.Button then
                 local isActive = tab.Container.Visible
-                TweenService:Create(tab.Button, TweenInfo.new(0.3), {
-                    BackgroundColor3 = isActive and self.Theme.Accent or self.Theme.Secondary
-                }):Play()
+                tab.Button.BackgroundColor3 = isActive and self.Theme.Accent or self.Theme.Secondary
             end
             if tab.Container then
-                TweenService:Create(tab.Container, TweenInfo.new(0.3), {ScrollBarImageColor3 = self.Theme.Accent}):Play()
+                tab.Container.ScrollBarImageColor3 = self.Theme.Accent
             end
         end
     end
@@ -167,28 +163,28 @@ function Library:UpdateTheme()
     for _, element in pairs(self.Elements or {}) do
         if element and element.Parent then
             if element:IsA("Frame") or element:IsA("TextButton") then
-                TweenService:Create(element, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Secondary}):Play()
+                element.BackgroundColor3 = self.Theme.Secondary
             end
             
             for _, child in pairs(element:GetDescendants()) do
                 if child:IsA("TextLabel") then
-                    if child.Name == "SectionLabel" then
-                        TweenService:Create(child, TweenInfo.new(0.3), {TextColor3 = self.Theme.Accent}):Play()
+                    if child.Name == "SectionLabel" or child.Name == "ConfigLabel" then
+                        child.TextColor3 = self.Theme.Accent
                     elseif child.Name == "ValueLabel" or child.Name == "SelectedLabel" then
-                        TweenService:Create(child, TweenInfo.new(0.3), {TextColor3 = self.Theme.Accent}):Play()
+                        child.TextColor3 = self.Theme.Accent
                     elseif child.Name ~= "Arrow" then
-                        TweenService:Create(child, TweenInfo.new(0.3), {TextColor3 = self.Theme.Text}):Play()
+                        child.TextColor3 = self.Theme.Text
                     end
                 end
                 
                 if child.Name == "SliderFill" then
-                    TweenService:Create(child, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Accent}):Play()
+                    child.BackgroundColor3 = self.Theme.Accent
                 elseif child.Name == "ToggleButton" then
                     if child.BackgroundColor3 ~= Color3.fromRGB(50, 50, 60) then
-                        TweenService:Create(child, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Accent}):Play()
+                        child.BackgroundColor3 = self.Theme.Accent
                     end
                 elseif child.Name == "KeybindDisplay" then
-                    TweenService:Create(child, TweenInfo.new(0.3), {BackgroundColor3 = self.Theme.Accent}):Play()
+                    child.BackgroundColor3 = self.Theme.Accent
                 end
             end
         end
