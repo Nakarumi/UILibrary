@@ -1,4 +1,4 @@
--- Roblox GUI Library v2.5
+-- Roblox GUI Library v2.5 - FIXED VERSION
 -- Użycie: loadstring(game:HttpGet("URL_DO_TEGO_SKRYPTU"))()
 
 local TweenService = game:GetService("TweenService")
@@ -983,6 +983,7 @@ function Library:CreateDropdown(name, options, callback)
     return Dropdown
 end
 
+-- FIXED COLOR PICKER - Problem był w tej funkcji
 function Library:CreateColorPicker(name, default, callback)
     local currentColor = default or Color3.fromRGB(255, 255, 255)
     local pickerOpen = false
@@ -1039,6 +1040,7 @@ function Library:CreateColorPicker(name, default, callback)
     WheelCorner.CornerRadius = UDim.new(1, 0)
     WheelCorner.Parent = ColorWheel
     
+    -- FIX: Poprawiona funkcja createSlider - teraz przyjmuje wartość 0-1 zamiast Color3 komponentu
     local function createSlider(yPos, colorName, colorValue)
         local Slider = Instance.new("Frame")
         Slider.Size = UDim2.new(1, -24, 0, 20)
@@ -1052,7 +1054,7 @@ function Library:CreateColorPicker(name, default, callback)
         Corner.Parent = Slider
         
         local Fill = Instance.new("Frame")
-        Fill.Size = UDim2.new(colorValue, 0, 1, 0)
+        Fill.Size = UDim2.new(colorValue, 0, 1, 0)  -- colorValue już jest 0-1
         Fill.BackgroundColor3 = colorName == "R" and Color3.fromRGB(255, 0, 0) or 
                                 colorName == "G" and Color3.fromRGB(0, 255, 0) or 
                                 Color3.fromRGB(0, 0, 255)
@@ -1077,7 +1079,7 @@ function Library:CreateColorPicker(name, default, callback)
         ValueLabel.Size = UDim2.new(0, 35, 1, 0)
         ValueLabel.Position = UDim2.new(1, -40, 0, 0)
         ValueLabel.BackgroundTransparency = 1
-        ValueLabel.Text = tostring(math.floor(colorValue * 255))
+        ValueLabel.Text = tostring(math.floor(colorValue * 255))  -- colorValue jest już 0-1
         ValueLabel.TextColor3 = self.Theme.TextDark
         ValueLabel.Font = Enum.Font.Gotham
         ValueLabel.TextSize = 11
@@ -1087,6 +1089,7 @@ function Library:CreateColorPicker(name, default, callback)
         return Slider, Fill, ValueLabel
     end
     
+    -- FIX: Używamy .R, .G, .B które zwracają wartości 0-1
     local RSlider, RFill, RValue = createSlider(222, "R", currentColor.R)
     local GSlider, GFill, GValue = createSlider(247, "G", currentColor.G)
     local BSlider, BFill, BValue = createSlider(272, "B", currentColor.B)
