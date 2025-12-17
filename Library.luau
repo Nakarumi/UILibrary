@@ -983,7 +983,6 @@ function Library:CreateDropdown(name, options, callback)
     return Dropdown
 end
 
--- Color Picker z kołem kolorów
 function Library:CreateColorPicker(name, default, callback)
     local currentColor = default or Color3.fromRGB(255, 255, 255)
     local pickerOpen = false
@@ -1028,63 +1027,146 @@ function Library:CreateColorPicker(name, default, callback)
     DisplayCorner.CornerRadius = UDim.new(0, 6)
     DisplayCorner.Parent = ColorDisplay
     
-    -- Koło kolorów
-    local ColorWheel = Instance.new("Frame")
-    ColorWheel.Size = UDim2.new(0, 180, 0, 180)
-    ColorWheel.Position = UDim2.new(0.5, -90, 0, 52)
+    local ColorWheel = Instance.new("ImageButton")
+    ColorWheel.Size = UDim2.new(0, 160, 0, 160)
+    ColorWheel.Position = UDim2.new(0.5, -80, 0, 52)
     ColorWheel.BackgroundTransparency = 1
+    ColorWheel.Image = "rbxassetid://698052001"
+    ColorWheel.AutoButtonColor = false
     ColorWheel.Parent = ColorPicker
-    
-    local WheelImage = Instance.new("ImageLabel")
-    WheelImage.Size = UDim2.new(1, 0, 1, 0)
-    WheelImage.BackgroundTransparency = 1
-    WheelImage.Image = "rbxassetid://698052001"
-    WheelImage.Parent = ColorWheel
     
     local WheelCorner = Instance.new("UICorner")
     WheelCorner.CornerRadius = UDim.new(1, 0)
-    WheelCorner.Parent = WheelImage
+    WheelCorner.Parent = ColorWheel
     
-    -- RGB Sliders
-    local RSlider = Instance.new("Frame")
-    RSlider.Size = UDim2.new(1, -24, 0, 20)
-    RSlider.Position = UDim2.new(0, 12, 0, 242)
-    RSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    RSlider.BorderSizePixel = 0
-    RSlider.Parent = ColorPicker
+    local function createSlider(yPos, colorName, colorValue)
+        local Slider = Instance.new("Frame")
+        Slider.Size = UDim2.new(1, -24, 0, 20)
+        Slider.Position = UDim2.new(0, 12, 0, yPos)
+        Slider.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        Slider.BorderSizePixel = 0
+        Slider.Parent = ColorPicker
+        
+        local Corner = Instance.new("UICorner")
+        Corner.CornerRadius = UDim.new(0, 4)
+        Corner.Parent = Slider
+        
+        local Fill = Instance.new("Frame")
+        Fill.Size = UDim2.new(colorValue, 0, 1, 0)
+        Fill.BackgroundColor3 = colorName == "R" and Color3.fromRGB(255, 0, 0) or 
+                                colorName == "G" and Color3.fromRGB(0, 255, 0) or 
+                                Color3.fromRGB(0, 0, 255)
+        Fill.BorderSizePixel = 0
+        Fill.Parent = Slider
+        
+        local FillCorner = Instance.new("UICorner")
+        FillCorner.CornerRadius = UDim.new(0, 4)
+        FillCorner.Parent = Fill
+        
+        local Label = Instance.new("TextLabel")
+        Label.Size = UDim2.new(0, 20, 1, 0)
+        Label.Position = UDim2.new(0, 5, 0, 0)
+        Label.BackgroundTransparency = 1
+        Label.Text = colorName
+        Label.TextColor3 = self.Theme.Text
+        Label.Font = Enum.Font.GothamBold
+        Label.TextSize = 12
+        Label.Parent = Slider
+        
+        local ValueLabel = Instance.new("TextLabel")
+        ValueLabel.Size = UDim2.new(0, 35, 1, 0)
+        ValueLabel.Position = UDim2.new(1, -40, 0, 0)
+        ValueLabel.BackgroundTransparency = 1
+        ValueLabel.Text = tostring(math.floor(colorValue * 255))
+        ValueLabel.TextColor3 = self.Theme.TextDark
+        ValueLabel.Font = Enum.Font.Gotham
+        ValueLabel.TextSize = 11
+        ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+        ValueLabel.Parent = Slider
+        
+        return Slider, Fill, ValueLabel
+    end
     
-    local RCorner = Instance.new("UICorner")
-    RCorner.CornerRadius = UDim.new(0, 4)
-    RCorner.Parent = RSlider
-    
-    local RFill = Instance.new("Frame")
-    RFill.Size = UDim2.new(currentColor.R, 0, 1, 0)
-    RFill.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    RFill.BorderSizePixel = 0
-    RFill.Parent = RSlider
-    
-    local RFillCorner = Instance.new("UICorner")
-    RFillCorner.CornerRadius = UDim.new(0, 4)
-    RFillCorner.Parent = RFill
-    
-    local RLabel = Instance.new("TextLabel")
-    RLabel.Size = UDim2.new(0, 15, 1, 0)
-    RLabel.Position = UDim2.new(0, 5, 0, 0)
-    RLabel.BackgroundTransparency = 1
-    RLabel.Text = "R"
-    RLabel.TextColor3 = self.Theme.Text
-    RLabel.Font = Enum.Font.GothamBold
-    RLabel.TextSize = 12
-    RLabel.Parent = RSlider
+    local RSlider, RFill, RValue = createSlider(222, "R", currentColor.R)
+    local GSlider, GFill, GValue = createSlider(247, "G", currentColor.G)
+    local BSlider, BFill, BValue = createSlider(272, "B", currentColor.B)
     
     TweenService:Create(ColorPicker, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
     TweenService:Create(PickerLabel, TweenInfo.new(0.4), {TextTransparency = 0}):Play()
+    
+    local function updateColor()
+        local r = RFill.Size.X.Scale
+        local g = GFill.Size.X.Scale
+        local b = BFill.Size.X.Scale
+        currentColor = Color3.fromRGB(r * 255, g * 255, b * 255)
+        ColorDisplay.BackgroundColor3 = currentColor
+        
+        RValue.Text = tostring(math.floor(r * 255))
+        GValue.Text = tostring(math.floor(g * 255))
+        BValue.Text = tostring(math.floor(b * 255))
+        
+        if callback then callback(currentColor) end
+    end
+    
+    local function setupSlider(slider, fill)
+        local dragging = false
+        
+        slider.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+            end
+        end)
+        
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+            end
+        end)
+        
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                local mouse = game.Players.LocalPlayer:GetMouse()
+                local percent = math.clamp((mouse.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+                
+                TweenService:Create(fill, TweenInfo.new(0.05), {
+                    Size = UDim2.new(percent, 0, 1, 0)
+                }):Play()
+                
+                task.wait(0.05)
+                updateColor()
+            end
+        end)
+    end
+    
+    setupSlider(RSlider, RFill)
+    setupSlider(GSlider, GFill)
+    setupSlider(BSlider, BFill)
+    
+    ColorWheel.MouseButton1Down:Connect(function()
+        local mouse = game.Players.LocalPlayer:GetMouse()
+        local relX = mouse.X - ColorWheel.AbsolutePosition.X
+        local relY = mouse.Y - ColorWheel.AbsolutePosition.Y
+        
+        local centerX = ColorWheel.AbsoluteSize.X / 2
+        local centerY = ColorWheel.AbsoluteSize.Y / 2
+        
+        local angle = math.atan2(relY - centerY, relX - centerX)
+        local hue = (angle + math.pi) / (2 * math.pi)
+        
+        local color = Color3.fromHSV(hue, 1, 1)
+        
+        RFill.Size = UDim2.new(color.R, 0, 1, 0)
+        GFill.Size = UDim2.new(color.G, 0, 1, 0)
+        BFill.Size = UDim2.new(color.B, 0, 1, 0)
+        
+        updateColor()
+    end)
     
     ColorDisplay.MouseButton1Click:Connect(function()
         pickerOpen = not pickerOpen
         
         TweenService:Create(ColorPicker, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-            Size = pickerOpen and UDim2.new(1, 0, 0, 300) or UDim2.new(1, 0, 0, 42)
+            Size = pickerOpen and UDim2.new(1, 0, 0, 305) or UDim2.new(1, 0, 0, 42)
         }):Play()
     end)
     
@@ -1092,4 +1174,190 @@ function Library:CreateColorPicker(name, default, callback)
     return ColorPicker
 end
 
+function Library:CreateThemeEditor()
+    local ThemeWindow = self:CreateWindow({Title = "Theme Editor", Size = UDim2.new(0, 450, 0, 450)})
+    
+    ThemeWindow:CreateSection("Live Color Editor")
+    
+    ThemeWindow:CreateColorPicker("Background Color", self.Theme.Background, function(color)
+        self.Theme.Background = color
+        self:UpdateTheme()
+    end)
+    
+    ThemeWindow:CreateColorPicker("Secondary Color", self.Theme.Secondary, function(color)
+        self.Theme.Secondary = color
+        self:UpdateTheme()
+    end)
+    
+    ThemeWindow:CreateColorPicker("Accent Color", self.Theme.Accent, function(color)
+        self.Theme.Accent = color
+        self:UpdateTheme()
+    end)
+    
+    ThemeWindow:CreateColorPicker("Text Color", self.Theme.Text, function(color)
+        self.Theme.Text = color
+        self:UpdateTheme()
+    end)
+    
+    ThemeWindow:CreateSection("Preset Themes")
+    
+    ThemeWindow:CreateButton("Dark Blue", function()
+        self:SetTheme({
+            Background = Color3.fromRGB(25, 25, 35),
+            Secondary = Color3.fromRGB(35, 35, 45),
+            Accent = Color3.fromRGB(85, 170, 255)
+        })
+    end)
+    
+    ThemeWindow:CreateButton("Purple Dream", function()
+        self:SetTheme({
+            Background = Color3.fromRGB(30, 20, 40),
+            Secondary = Color3.fromRGB(40, 30, 50),
+            Accent = Color3.fromRGB(180, 100, 255)
+        })
+    end)
+    
+    ThemeWindow:CreateButton("Green Matrix", function()
+        self:SetTheme({
+            Background = Color3.fromRGB(15, 25, 15),
+            Secondary = Color3.fromRGB(20, 35, 20),
+            Accent = Color3.fromRGB(50, 255, 100)
+        })
+    end)
+    
+    ThemeWindow:CreateButton("Red Danger", function()
+        self:SetTheme({
+            Background = Color3.fromRGB(30, 15, 15),
+            Secondary = Color3.fromRGB(40, 20, 20),
+            Accent = Color3.fromRGB(255, 70, 70)
+        })
+    end)
+    
+    ThemeWindow:CreateButton("Cyan Wave", function()
+        self:SetTheme({
+            Background = Color3.fromRGB(15, 25, 30),
+            Secondary = Color3.fromRGB(20, 35, 40),
+            Accent = Color3.fromRGB(0, 255, 255)
+        })
+    end)
+    
+    ThemeWindow:CreateButton("Orange Sunset", function()
+        self:SetTheme({
+            Background = Color3.fromRGB(30, 20, 15),
+            Secondary = Color3.fromRGB(40, 30, 20),
+            Accent = Color3.fromRGB(255, 150, 50)
+        })
+    end)
+    
+    return ThemeWindow
+end
+
 return Library
+
+--[[
+
+EXAMPLE USAGE:
+
+local Library = loadstring(game:HttpGet("YOUR_URL_HERE"))()
+
+local Window = Library:CreateWindow({
+    Title = "Ultimate Script Hub",
+    Size = UDim2.new(0, 550, 0, 450),
+    ToggleKey = Enum.KeyCode.RightControl
+})
+
+Window:Notify({
+    Title = "Script Loaded!",
+    Description = "Press RightControl to toggle GUI",
+    Duration = 4
+})
+
+Window:CreateSection("Player Features")
+
+Window:CreateButton("Speed Boost", function()
+    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 100
+    Window:Notify("Speed Boost Activated!")
+end)
+
+Window:CreateToggle("Infinite Jump", false, function(state)
+    _G.InfJump = state
+    if state then
+        Window:Notify({
+            Title = "Infinite Jump",
+            Description = "Enabled",
+            Duration = 2
+        })
+    end
+end)
+
+Window:CreateSlider("WalkSpeed", 16, 200, 16, function(value)
+    game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = value
+end)
+
+Window:CreateSlider("JumpPower", 50, 300, 50, function(value)
+    game.Players.LocalPlayer.Character.Humanoid.JumpPower = value
+end)
+
+Window:CreateKeybind("Teleport to Spawn", Enum.KeyCode.T, function()
+    game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(0, 50, 0)
+    Window:Notify("Teleported to Spawn!")
+end)
+
+Window:CreateTextbox("Custom Speed", "Enter value...", function(text)
+    local speed = tonumber(text)
+    if speed then
+        game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = speed
+        Window:Notify("Speed set to " .. speed)
+    end
+end)
+
+Window:CreateSection("Visual Features")
+
+Window:CreateToggle("ESP Enabled", false, function(state)
+    _G.ESP = state
+    Window:Notify(state and "ESP Enabled" or "ESP Disabled")
+end)
+
+Window:CreateColorPicker("ESP Color", Color3.fromRGB(255, 0, 0), function(color)
+    _G.ESPColor = color
+end)
+
+Window:CreateColorPicker("Chams Color", Color3.fromRGB(0, 255, 0), function(color)
+    _G.ChamsColor = color
+end)
+
+Window:CreateDropdown("ESP Mode", {"Box", "Tracers", "Highlight", "All"}, function(option)
+    _G.ESPMode = option
+    Window:Notify("ESP Mode: " .. option)
+end)
+
+Window:CreateToggle("Fullbright", false, function(state)
+    if state then
+        game.Lighting.Brightness = 2
+        game.Lighting.ClockTime = 14
+        game.Lighting.FogEnd = 100000
+        game.Lighting.GlobalShadows = false
+        game.Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+    else
+        game.Lighting.Brightness = 1
+        game.Lighting.ClockTime = 12
+        game.Lighting.FogEnd = 100000
+        game.Lighting.GlobalShadows = true
+        game.Lighting.OutdoorAmbient = Color3.fromRGB(70, 70, 70)
+    end
+end)
+
+Window:CreateKeybind("Toggle ESP", Enum.KeyCode.V, function()
+    _G.ESP = not _G.ESP
+    Window:Notify(_G.ESP and "ESP ON" or "ESP OFF")
+end)
+
+Window:CreateButton("Open Theme Editor", function()
+    Window:CreateThemeEditor()
+end)
+
+Window:CreateDropdown("Notification Position", {"Top Right", "Top Left", "Bottom Right", "Bottom Left"}, function(option)
+    Window:Notify("Position changed to: " .. option)
+end)
+
+]]
