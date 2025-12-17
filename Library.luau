@@ -1671,37 +1671,38 @@ function Library:CreateColorPicker(name, default, callback)
 end
 
 function Library:CreateThemeEditor()
-    local ThemeWindow = self:CreateWindow({Title = "Theme Editor", Size = UDim2.new(0, 450, 0, 450)})
+    local mainWindow = self  -- Zachowaj referencję do głównego okna
+    local ThemeWindow = Library:CreateWindow({Title = "Theme Editor", Size = UDim2.new(0, 450, 0, 450)})
     
     local ColorsTab = ThemeWindow:CreateTab("Colors")
     
     ThemeWindow.Container = ColorsTab.Container
     
-    ThemeWindow:CreateColorPicker("Background Color", self.Theme.Background, function(color)
-        self.Theme.Background = color
-        self:UpdateTheme()
+    ThemeWindow:CreateColorPicker("Background Color", mainWindow.Theme.Background, function(color)
+        mainWindow.Theme.Background = color
+        mainWindow:UpdateTheme()  -- Wywołaj UpdateTheme na głównym oknie
     end)
     
-    ThemeWindow:CreateColorPicker("Secondary Color", self.Theme.Secondary, function(color)
-        self.Theme.Secondary = color
-        self:UpdateTheme()
+    ThemeWindow:CreateColorPicker("Secondary Color", mainWindow.Theme.Secondary, function(color)
+        mainWindow.Theme.Secondary = color
+        mainWindow:UpdateTheme()
     end)
     
-    ThemeWindow:CreateColorPicker("Accent Color", self.Theme.Accent, function(color)
-        self.Theme.Accent = color
-        self:UpdateTheme()
+    ThemeWindow:CreateColorPicker("Accent Color", mainWindow.Theme.Accent, function(color)
+        mainWindow.Theme.Accent = color
+        mainWindow:UpdateTheme()
     end)
     
-    ThemeWindow:CreateColorPicker("Text Color", self.Theme.Text, function(color)
-        self.Theme.Text = color
-        self:UpdateTheme()
+    ThemeWindow:CreateColorPicker("Text Color", mainWindow.Theme.Text, function(color)
+        mainWindow.Theme.Text = color
+        mainWindow:UpdateTheme()
     end)
     
     local PresetsTab = ThemeWindow:CreateTab("Presets")
     ThemeWindow.Container = PresetsTab.Container
     
     ThemeWindow:CreateButton("Dark Blue", function()
-        self:SetTheme({
+        mainWindow:SetTheme({
             Background = Color3.fromRGB(25, 25, 35),
             Secondary = Color3.fromRGB(35, 35, 45),
             Accent = Color3.fromRGB(85, 170, 255)
@@ -1709,7 +1710,7 @@ function Library:CreateThemeEditor()
     end)
     
     ThemeWindow:CreateButton("Purple Dream", function()
-        self:SetTheme({
+        mainWindow:SetTheme({
             Background = Color3.fromRGB(30, 20, 40),
             Secondary = Color3.fromRGB(40, 30, 50),
             Accent = Color3.fromRGB(180, 100, 255)
@@ -1717,7 +1718,7 @@ function Library:CreateThemeEditor()
     end)
     
     ThemeWindow:CreateButton("Green Matrix", function()
-        self:SetTheme({
+        mainWindow:SetTheme({
             Background = Color3.fromRGB(15, 25, 15),
             Secondary = Color3.fromRGB(20, 35, 20),
             Accent = Color3.fromRGB(50, 255, 100)
@@ -1725,7 +1726,7 @@ function Library:CreateThemeEditor()
     end)
     
     ThemeWindow:CreateButton("Red Danger", function()
-        self:SetTheme({
+        mainWindow:SetTheme({
             Background = Color3.fromRGB(30, 15, 15),
             Secondary = Color3.fromRGB(40, 20, 20),
             Accent = Color3.fromRGB(255, 70, 70)
@@ -1733,7 +1734,7 @@ function Library:CreateThemeEditor()
     end)
     
     ThemeWindow:CreateButton("Cyan Wave", function()
-        self:SetTheme({
+        mainWindow:SetTheme({
             Background = Color3.fromRGB(15, 25, 30),
             Secondary = Color3.fromRGB(20, 35, 40),
             Accent = Color3.fromRGB(0, 255, 255)
@@ -1741,7 +1742,7 @@ function Library:CreateThemeEditor()
     end)
     
     ThemeWindow:CreateButton("Orange Sunset", function()
-        self:SetTheme({
+        mainWindow:SetTheme({
             Background = Color3.fromRGB(30, 20, 15),
             Secondary = Color3.fromRGB(40, 30, 20),
             Accent = Color3.fromRGB(255, 150, 50)
@@ -1752,7 +1753,3 @@ function Library:CreateThemeEditor()
 end
 
 return Library
-
-
-
-
