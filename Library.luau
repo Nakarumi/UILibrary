@@ -548,7 +548,12 @@ function Library:CreateTab(name)
     
     -- Auto-select first tab
     if #self.Tabs == 1 then
-        TabButton.MouseButton1Click:Fire()
+        TabContainer.Visible = true
+        self.CurrentTab = Tab
+        self.Container = TabContainer
+        TweenService:Create(TabButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = self.Theme.Accent
+        }):Play()
     end
     
     return Tab
