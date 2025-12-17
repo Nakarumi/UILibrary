@@ -455,6 +455,14 @@ function Library:SaveConfig(name)
         configData[key] = data.Value
     end
     
+    configData["__Theme__"] = {
+        Background = {self.Theme.Background.R, self.Theme.Background.G, self.Theme.Background.B},
+        Secondary = {self.Theme.Secondary.R, self.Theme.Secondary.G, self.Theme.Secondary.B},
+        Accent = {self.Theme.Accent.R, self.Theme.Accent.G, self.Theme.Accent.B},
+        Text = {self.Theme.Text.R, self.Theme.Text.G, self.Theme.Text.B},
+        TextDark = {self.Theme.TextDark.R, self.Theme.TextDark.G, self.Theme.TextDark.B}
+    }
+    
     local success, err = pcall(function()
         writefile(configPath, game:GetService("HttpService"):JSONEncode(configData))
     end)
@@ -484,7 +492,14 @@ function Library:LoadConfig(name)
     end
     
     for key, value in pairs(result) do
-        if self.ConfigData[key] then
+        if key == "__Theme__" then
+            self.Theme.Background = Color3.fromRGB(value.Background[1] * 255, value.Background[2] * 255, value.Background[3] * 255)
+            self.Theme.Secondary = Color3.fromRGB(value.Secondary[1] * 255, value.Secondary[2] * 255, value.Secondary[3] * 255)
+            self.Theme.Accent = Color3.fromRGB(value.Accent[1] * 255, value.Accent[2] * 255, value.Accent[3] * 255)
+            self.Theme.Text = Color3.fromRGB(value.Text[1] * 255, value.Text[2] * 255, value.Text[3] * 255)
+            self.Theme.TextDark = Color3.fromRGB(value.TextDark[1] * 255, value.TextDark[2] * 255, value.TextDark[3] * 255)
+            self:UpdateTheme()
+        elseif self.ConfigData[key] then
             self.ConfigData[key].Callback(value)
             self.ConfigData[key].Value = value
         end
@@ -574,13 +589,12 @@ function Library:CreateConfiguration()
     NameCorner.CornerRadius = UDim.new(0, 6)
     NameCorner.Parent = ConfigName
     
-    -- GŁÓWNA ZMIANA: ConfigDropdown nie ma już ClipsDescendants!
     local ConfigDropdown = Instance.new("Frame")
     ConfigDropdown.Size = UDim2.new(1, -20, 0, 35)
     ConfigDropdown.Position = UDim2.new(0, 10, 0, 88)
     ConfigDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
     ConfigDropdown.BorderSizePixel = 0
-    ConfigDropdown.ClipsDescendants = false  -- ZMIENIONE z true na false
+    ConfigDropdown.ClipsDescendants = false
     ConfigDropdown.ZIndex = 2
     ConfigDropdown.Parent = ConfigSection
     
@@ -609,17 +623,16 @@ function Library:CreateConfiguration()
     DropArrow.TextSize = 10
     DropArrow.Parent = ConfigDropdown
     
-    -- GŁÓWNA ZMIANA: ConfigList ma prawidłową pozycję i ZIndex
     local ConfigList = Instance.new("ScrollingFrame")
     ConfigList.Size = UDim2.new(1, 0, 0, 0)
-    ConfigList.Position = UDim2.new(0, 0, 0, 38)  -- ZMIENIONE: 38 zamiast (1, 3)
+    ConfigList.Position = UDim2.new(0, 0, 0, 38)
     ConfigList.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
     ConfigList.BorderSizePixel = 0
     ConfigList.ScrollBarThickness = 4
     ConfigList.ScrollBarImageColor3 = self.Theme.Accent
     ConfigList.Visible = false
     ConfigList.CanvasSize = UDim2.new(0, 0, 0, 0)
-    ConfigList.ZIndex = 10  -- DODANE: Wyższy ZIndex
+    ConfigList.ZIndex = 10
     ConfigList.Parent = ConfigDropdown
     
     local ListCorner = Instance.new("UICorner")
@@ -633,16 +646,13 @@ function Library:CreateConfiguration()
     ListLayout.Parent = ConfigList
     
     local function updateConfigList()
-        -- Wyczyść wszystkie istniejące elementy
         for _, child in pairs(ConfigList:GetChildren()) do
             if child:IsA("TextButton") or child:IsA("TextLabel") then
                 child:Destroy()
             end
         end
         
-        -- Pobierz listę configów
         local configs = self:GetConfigs()
-        
         local listHeight = math.max(#configs * 32 + 4, 32)
         ConfigList.CanvasSize = UDim2.new(0, 0, 0, listHeight)
         
@@ -659,7 +669,6 @@ function Library:CreateConfiguration()
             return
         end
         
-        -- Twórz przyciski dla każdego configa
         for i, configName in pairs(configs) do
             local ConfigButton = Instance.new("TextButton")
             ConfigButton.Size = UDim2.new(1, -8, 0, 30)
@@ -702,7 +711,6 @@ function Library:CreateConfiguration()
     DropArrow.MouseButton1Click:Connect(function()
         ConfigList.Visible = not ConfigList.Visible
         
-        -- Odśwież listę gdy otwierasz dropdown
         if ConfigList.Visible then
             updateConfigList()
         end
@@ -710,7 +718,6 @@ function Library:CreateConfiguration()
         local configs = self:GetConfigs()
         local listHeight = math.min(math.max(#configs, 1) * 32 + 4, 120)
         
-        -- ZMIENIONE: Animacja tylko ConfigList, nie całego ConfigDropdown
         TweenService:Create(ConfigList, TweenInfo.new(0.2), {
             Size = ConfigList.Visible and UDim2.new(1, 0, 0, listHeight) or UDim2.new(1, 0, 0, 0)
         }):Play()
@@ -1671,7 +1678,7 @@ function Library:CreateColorPicker(name, default, callback)
 end
 
 function Library:CreateThemeEditor()
-    local mainWindow = self  -- Zachowaj referencję do głównego okna
+    local mainWindow = self
     local ThemeWindow = Library:CreateWindow({Title = "Theme Editor", Size = UDim2.new(0, 450, 0, 450)})
     
     local ColorsTab = ThemeWindow:CreateTab("Colors")
@@ -1680,7 +1687,7 @@ function Library:CreateThemeEditor()
     
     ThemeWindow:CreateColorPicker("Background Color", mainWindow.Theme.Background, function(color)
         mainWindow.Theme.Background = color
-        mainWindow:UpdateTheme()  -- Wywołaj UpdateTheme na głównym oknie
+        mainWindow:UpdateTheme()
     end)
     
     ThemeWindow:CreateColorPicker("Secondary Color", mainWindow.Theme.Secondary, function(color)
