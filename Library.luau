@@ -581,6 +581,7 @@ function Library:CreateConfiguration()
     ConfigDropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
     ConfigDropdown.BorderSizePixel = 0
     ConfigDropdown.ClipsDescendants = false  -- ZMIENIONE z true na false
+    ConfigDropdown.ZIndex = 2
     ConfigDropdown.Parent = ConfigSection
     
     local DropCorner = Instance.new("UICorner")
@@ -1750,5 +1751,6 @@ function Library:CreateThemeEditor()
 end
 
 return Library
+
 
 
